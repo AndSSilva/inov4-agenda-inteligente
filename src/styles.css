@@ -163,10 +163,6 @@
     radial-gradient(900px 480px at 8% 4%, oklch(0.678 0.151 54.3 / 18%), transparent 55%);
 }
 
-@utility font-display {
-  font-family: var(--font-display-family);
-  font-optical-sizing: auto;
-}
 
 @utility slot-fill {
   transition:
