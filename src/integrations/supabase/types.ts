@@ -14,16 +14,205 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agendamentos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          empresa_id: string
+          fim: string
+          id: string
+          inicio: string
+          observacao: string | null
+          servico_id: string
+          status: Database["public"]["Enums"]["status_agendamento"]
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          empresa_id: string
+          fim: string
+          id?: string
+          inicio: string
+          observacao?: string | null
+          servico_id: string
+          status?: Database["public"]["Enums"]["status_agendamento"]
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          empresa_id?: string
+          fim?: string
+          id?: string
+          inicio?: string
+          observacao?: string | null
+          servico_id?: string
+          status?: Database["public"]["Enums"]["status_agendamento"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          empresa_id: string
+          filiacao: string | null
+          id: string
+          nome: string
+          telefone: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          empresa_id: string
+          filiacao?: string | null
+          id?: string
+          nome: string
+          telefone: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          empresa_id?: string
+          filiacao?: string | null
+          id?: string
+          nome?: string
+          telefone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresas: {
+        Row: {
+          created_at: string
+          dias_semana: number[]
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          nome: string
+          owner_id: string | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          dias_semana?: number[]
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          nome: string
+          owner_id?: string | null
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          dias_semana?: number[]
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          nome?: string
+          owner_id?: string | null
+          slug?: string
+        }
+        Relationships: []
+      }
+      servicos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          duracao_min: number
+          empresa_id: string
+          id: string
+          intervalo_min: number
+          nome: string
+          preco: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          duracao_min?: number
+          empresa_id: string
+          id?: string
+          intervalo_min?: number
+          nome: string
+          preco?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          duracao_min?: number
+          empresa_id?: string
+          id?: string
+          intervalo_min?: number
+          nome?: string
+          preco?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      criar_agendamento: {
+        Args: {
+          p_email?: string
+          p_filiacao?: string
+          p_inicio: string
+          p_nome: string
+          p_servico: string
+          p_slug: string
+          p_telefone: string
+        }
+        Returns: string
+      }
+      eh_dono: { Args: { _empresa: string }; Returns: boolean }
+      horarios_ocupados: {
+        Args: { p_data: string; p_empresa: string }
+        Returns: {
+          fim: string
+          inicio: string
+        }[]
+      }
+      provisionar_empresa: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      status_agendamento: "pendente" | "confirmado" | "cancelado" | "concluido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +339,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      status_agendamento: ["pendente", "confirmado", "cancelado", "concluido"],
+    },
   },
 } as const
