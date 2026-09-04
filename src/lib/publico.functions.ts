@@ -138,8 +138,8 @@ export const criarReservaPublica = createServerFn({ method: "POST" })
       p_inicio: new Date(isoLocal(data.data, data.hora)).toISOString(),
       p_nome: data.nome,
       p_telefone: data.telefone,
-      p_email: data.email || null,
-      p_filiacao: data.filiacao || null,
+      ...(data.email ? { p_email: data.email } : {}),
+      ...(data.filiacao ? { p_filiacao: data.filiacao } : {}),
     });
     if (error) return { ok: false, erro: error.message };
     return { ok: true, id: id as string };

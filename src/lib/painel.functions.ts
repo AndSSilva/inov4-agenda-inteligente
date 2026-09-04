@@ -118,7 +118,7 @@ export const getDashboard = createServerFn({ method: "GET" })
       .select("id", { count: "exact", head: true })
       .eq("empresa_id", empresa.id);
 
-    const lista = (doDia ?? []).map(mapAgendamento);
+    const lista: AgendamentoItem[] = (doDia ?? []).map(mapAgendamento);
     const validos = lista.filter((a) => a.status !== "cancelado");
     const confirmados = lista.filter(
       (a) => a.status === "confirmado" || a.status === "concluido",
@@ -141,7 +141,7 @@ export const getDashboard = createServerFn({ method: "GET" })
         ocupacao: Math.min(100, Math.round((minutosOcupados / capacidade) * 100)),
         totalClientes: totalClientes ?? 0,
       },
-      proximos: (proximos ?? []).map(mapAgendamento),
+      proximos: (proximos ?? []).map(mapAgendamento) as AgendamentoItem[],
     };
   });
 
@@ -224,7 +224,7 @@ export const listAgenda = createServerFn({ method: "GET" })
       .gte("inicio", inicio)
       .lt("inicio", fim)
       .order("inicio", { ascending: true });
-    return { empresa, agendamentos: (rows ?? []).map(mapAgendamento) };
+    return { empresa, agendamentos: (rows ?? []).map(mapAgendamento) as AgendamentoItem[] };
   });
 
 export const atualizarStatus = createServerFn({ method: "POST" })
