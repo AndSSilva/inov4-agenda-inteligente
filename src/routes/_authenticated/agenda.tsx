@@ -1,163 +1,406 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { CalendarClock, MessageCircleMore, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PainelShell } from "@/components/PainelShell";
+
+import { AdminShell } from "@/components/admin/AdminShell";
 import { StatusTag } from "@/components/StatusTag";
-import { atualizarStatus, listAgenda } from "@/lib/painel.functions";
-import { NOMES_DIAS, dataLocal, horaLocal, moeda, somaDias } from "@/lib/tempo";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  agirAgendamento,
+  listAgendamentosGestao,
+  remarcarAgendamento,
+  type AgendamentoItem,
+} from "@/lib/painel.functions";
+import { dataCurta, horaLocal, moeda } from "@/lib/tempo";
+import {
+  abrirWhatsApp,
+  mensagemCancelamento,
+  mensagemConfirmacao,
+  mensagemLembrete,
+  mensagemRemarcacao,
+} from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/agenda")({
   head: () => ({
     meta: [
-      { title: "Minha Agenda · Cronica" },
-      { name: "description", content: "Visualize seus horários por dia ou semana e mude status." },
-      { property: "og:title", content: "Minha Agenda · Cronica" },
-      { property: "og:description", content: "Horários do dia e da semana em um só quadro." },
+      { title: "Agendamentos · Cronica" },
+      {
+        name: "description",
+        content: "Confirme, lembre, cancele ou remarque agendamentos pelo WhatsApp.",
+      },
+      { property: "og:title", content: "Agendamentos · Cronica" },
+      { property: "og:description", content: "Fila de agendamentos pendentes de ação." },
     ],
   }),
   component: AgendaPage,
 });
 
-const PROXIMO: Record<string, "pendente" | "confirmado" | "cancelado" | "concluido"> = {
-  pendente: "confirmado",
-  confirmado: "concluido",
-  concluido: "pendente",
-  cancelado: "pendente",
-};
-
 function AgendaPage() {
-  const carregar = useServerFn(listAgenda);
-  const mudar = useServerFn(atualizarStatus);
+  const carregar = useServerFn(listAgendamentosGestao);
+  const agir = useServerFn(agirAgendamento);
+  const remarcar = useServerFn(remarcarAgendamento);
   const qc = useQueryClient();
-  const [modo, setModo] = useState<"dia" | "semana">("dia");
-  const [base, setBase] = useState(() => dataLocal(new Date()));
-
-  const de = modo === "dia" ? base : somaDias(base, -3);
-  const ate = modo === "dia" ? base : somaDias(base, 3);
+  const [remarcando, setRemarcando] = useState<AgendamentoItem | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["agenda", de, ate],
-    queryFn: () => carregar({ data: { de, ate } }),
+    queryKey: ["agendamentos-gestao"],
+    queryFn: () => carregar(),
   });
 
-  const mStatus = useMutation({
-    mutationFn: (v: { id: string; status: "pendente" | "confirmado" | "cancelado" | "concluido" }) =>
-      mudar({ data: v }),
-    onSuccess: () => {
-      toast.success("Status atualizado");
-      qc.invalidateQueries();
+  const mAgir = useMutation({
+    mutationFn: (v: {
+      id: string;
+      acao: "confirmar" | "lembrete" | "cancelar" | "cliente_confirmou";
+    }) => agir({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["agendamentos-gestao"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const empresaNome = data?.empresa.nome ?? "";
+
+  function confirmar(a: AgendamentoItem) {
+    mAgir.mutate({ id: a.id, acao: "confirmar" });
+    abrirWhatsApp(
+      a.cliente_telefone,
+      mensagemConfirmacao({
+        clienteNome: a.cliente_nome,
+        servicoNome: a.servico_nome,
+        empresaNome,
+        inicioIso: a.inicio,
+      }),
+    );
+  }
+
+  function enviarLembrete(a: AgendamentoItem) {
+    mAgir.mutate({ id: a.id, acao: "lembrete" });
+    abrirWhatsApp(
+      a.cliente_telefone,
+      mensagemLembrete({
+        clienteNome: a.cliente_nome,
+        servicoNome: a.servico_nome,
+        empresaNome,
+        inicioIso: a.inicio,
+      }),
+    );
+  }
+
+  function cancelar(a: AgendamentoItem) {
+    mAgir.mutate({ id: a.id, acao: "cancelar" });
+    abrirWhatsApp(
+      a.cliente_telefone,
+      mensagemCancelamento({
+        clienteNome: a.cliente_nome,
+        servicoNome: a.servico_nome,
+        empresaNome,
+        inicioIso: a.inicio,
+      }),
+    );
+  }
+
+  function clienteConfirmou(a: AgendamentoItem) {
+    mAgir.mutate({ id: a.id, acao: "cliente_confirmou" });
+    toast.success("Marcado como confirmado");
+  }
+
+  const mRemarcar = useMutation({
+    mutationFn: (v: { id: string; novoInicio: string }) => remarcar({ data: v }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["agendamentos-gestao"] });
+      if (remarcando) {
+        abrirWhatsApp(
+          remarcando.cliente_telefone,
+          mensagemRemarcacao({
+            clienteNome: remarcando.cliente_nome,
+            servicoNome: remarcando.servico_nome,
+            empresaNome,
+            inicioIso: remarcando.inicio,
+            novoInicioIso: res.novoInicio,
+          }),
+        );
+      }
+      setRemarcando(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const dias = Array.from({ length: modo === "dia" ? 1 : 7 }, (_, i) => somaDias(de, i));
+  const pendentes = data?.pendentes ?? [];
+  const aguardando = data?.aguardandoConfirmacao ?? [];
 
   return (
-    <PainelShell empresaNome={data?.empresa.nome ?? "…"}>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium tracking-[0.14em] text-inksoft uppercase">
-            Minha agenda
-          </p>
-          <h1 className="mt-1 text-2xl text-balance font-display">Seu quadro de horários</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setBase(somaDias(base, modo === "dia" ? -1 : -7))}
-            className="rounded-md px-2.5 py-1 text-xs ring-1 ring-border"
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            onClick={() => setBase(dataLocal(new Date()))}
-            className="rounded-md px-2.5 py-1 text-xs ring-1 ring-border"
-          >
-            Hoje
-          </button>
-          <button
-            type="button"
-            onClick={() => setBase(somaDias(base, modo === "dia" ? 1 : 7))}
-            className="rounded-md px-2.5 py-1 text-xs ring-1 ring-border"
-          >
-            →
-          </button>
-          <div className="ml-1 flex overflow-hidden rounded-md ring-1 ring-border">
-            {(["dia", "semana"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setModo(m)}
-                className={`px-2.5 py-1 text-xs ${modo === m ? "bg-brand text-cream" : "text-inksoft"}`}
-              >
-                {m === "dia" ? "Dia" : "Semana"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+    <AdminShell title="Agendamentos">
+      <p className="text-sm text-muted-foreground">
+        Ações manuais: cada botão te leva direto pro WhatsApp do cliente com a mensagem pronta.
+      </p>
 
-      {isLoading && <p className="mt-4 text-sm text-inksoft">Carregando…</p>}
+      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Carregando...</p>}
 
-      <div
-        className={`mt-4 grid gap-2 ${modo === "semana" ? "sm:grid-cols-2 lg:grid-cols-3" : ""}`}
-      >
-        {dias.map((dia) => {
-          const doDia = (data?.agendamentos ?? []).filter((a) => dataLocal(new Date(a.inicio)) === dia);
-          const [, mes, d] = dia.split("-");
-          const nomeDia = NOMES_DIAS[new Date(`${dia}T12:00:00-03:00`).getDay()];
-          return (
-            <div key={dia} className="rounded-lg bg-cream/50 p-3 ring-1 ring-border">
-              <div className="mb-2 flex items-baseline justify-between">
-                <p className="text-sm font-medium">
-                  {nomeDia} · {d}/{mes}
-                </p>
-                <span className="text-xs text-inksoft">{doDia.length} horários</span>
-              </div>
-              <div className="grid gap-1.5">
-                {doDia.length === 0 && <p className="text-xs text-inksoft">Nenhum agendamento.</p>}
-                {doDia.map((a) => (
-                  <div key={a.id} className="rounded-md bg-paper p-2.5 ring-1 ring-border">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold font-display">
-                        {horaLocal(a.inicio)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm">{a.servico_nome}</span>
-                      <StatusTag status={a.status} />
-                    </div>
-                    <p className="mt-1 truncate text-xs text-inksoft">
-                      {a.cliente_nome} · {a.cliente_telefone}
-                      {a.cliente_filiacao ? ` · ${a.cliente_filiacao}` : ""} ·{" "}
-                      {moeda(a.servico_preco)}
-                    </p>
-                    <div className="mt-2 flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          mStatus.mutate({ id: a.id, status: PROXIMO[a.status] ?? "confirmado" })
-                        }
-                        className="rounded-md px-2 py-0.5 text-xs text-branddeep ring-1 ring-border"
-                      >
-                        Avançar status
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => mStatus.mutate({ id: a.id, status: "cancelado" })}
-                        className="rounded-md px-2 py-0.5 text-xs text-canc ring-1 ring-border"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
+      {data && (
+        <Tabs defaultValue="pendentes" className="mt-4">
+          <TabsList>
+            <TabsTrigger value="pendentes">Pendentes de ação ({pendentes.length})</TabsTrigger>
+            <TabsTrigger value="aguardando">Aguardando cliente ({aguardando.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pendentes" className="mt-4">
+            {pendentes.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Nenhum agendamento pendente de ação.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {pendentes.map((a) => (
+                  <AgendamentoCard
+                    key={a.id}
+                    item={a}
+                    acoes={
+                      <>
+                        <Button
+                          className="h-10 rounded-full"
+                          onClick={() => confirmar(a)}
+                          disabled={mAgir.isPending}
+                        >
+                          <MessageCircleMore className="mr-1 h-4 w-4" aria-hidden />
+                          Confirmar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-full"
+                          onClick={() => enviarLembrete(a)}
+                          disabled={mAgir.isPending}
+                        >
+                          Enviar lembrete
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-full"
+                          onClick={() => setRemarcando(a)}
+                        >
+                          <CalendarClock className="mr-1 h-4 w-4" aria-hidden />
+                          Remarcar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-full text-destructive hover:text-destructive"
+                          onClick={() => cancelar(a)}
+                          disabled={mAgir.isPending}
+                        >
+                          <X className="mr-1 h-4 w-4" aria-hidden />
+                          Cancelar
+                        </Button>
+                      </>
+                    }
+                  />
                 ))}
-              </div>
-            </div>
-          );
-        })}
+              </ul>
+            )}
+          </TabsContent>
+
+          <TabsContent value="aguardando" className="mt-4">
+            {aguardando.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Nenhum agendamento aguardando confirmação do cliente.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {aguardando.map((a) => (
+                  <AgendamentoCard
+                    key={a.id}
+                    item={a}
+                    rodape={
+                      a.confirmacao_solicitada_em
+                        ? `Pedido enviado em ${dataCurta(a.confirmacao_solicitada_em)} às ${horaLocal(a.confirmacao_solicitada_em)}`
+                        : undefined
+                    }
+                    acoes={
+                      <>
+                        <Button
+                          className="h-10 rounded-full"
+                          onClick={() => clienteConfirmou(a)}
+                          disabled={mAgir.isPending}
+                        >
+                          Cliente confirmou
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-full"
+                          onClick={() => enviarLembrete(a)}
+                          disabled={mAgir.isPending}
+                        >
+                          Enviar lembrete
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-full"
+                          onClick={() => setRemarcando(a)}
+                        >
+                          <CalendarClock className="mr-1 h-4 w-4" aria-hidden />
+                          Remarcar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-full text-destructive hover:text-destructive"
+                          onClick={() => cancelar(a)}
+                          disabled={mAgir.isPending}
+                        >
+                          <X className="mr-1 h-4 w-4" aria-hidden />
+                          Cancelar
+                        </Button>
+                      </>
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      <RemarcarDialog
+        item={remarcando}
+        pending={mRemarcar.isPending}
+        onClose={() => setRemarcando(null)}
+        onConfirm={(novoInicio) => {
+          if (!remarcando) return;
+          mRemarcar.mutate({ id: remarcando.id, novoInicio });
+        }}
+      />
+    </AdminShell>
+  );
+}
+
+function AgendamentoCard({
+  item,
+  acoes,
+  rodape,
+}: {
+  item: AgendamentoItem;
+  acoes: React.ReactNode;
+  rodape?: string | undefined;
+}) {
+  return (
+    <li className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold">
+              {dataCurta(item.inicio)} · {horaLocal(item.inicio)}
+            </span>
+            <StatusTag status={item.status} />
+          </div>
+          <p className="mt-1 truncate text-sm font-medium">{item.servico_nome}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {item.cliente_nome} · {item.cliente_telefone}
+            {item.cliente_filiacao ? ` · ${item.cliente_filiacao}` : ""} ·{" "}
+            {moeda(item.servico_preco)}
+          </p>
+          {rodape && <p className="mt-1 text-xs text-muted-foreground">{rodape}</p>}
+        </div>
       </div>
-    </PainelShell>
+      <div className="mt-3 flex flex-wrap gap-2">{acoes}</div>
+    </li>
+  );
+}
+
+function RemarcarDialog({
+  item,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  item: AgendamentoItem | null;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: (novoInicioIsoLocal: string) => void;
+}) {
+  const [data, setData] = useState("");
+  const [hora, setHora] = useState("");
+  const [key, setKey] = useState<string | null>(null);
+
+  if (item && item.id !== key) {
+    setKey(item.id);
+    const d = new Date(item.inicio);
+    setData(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(d));
+    setHora(
+      new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(d),
+    );
+  }
+
+  return (
+    <Dialog open={Boolean(item)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remarcar agendamento</DialogTitle>
+          <DialogDescription>
+            Escolha o novo dia e horário para {item?.cliente_nome}. Ao salvar, você será direcionado
+            ao WhatsApp com a nova data pronta pra enviar.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!data || !hora) {
+              toast.error("Informe data e horário");
+              return;
+            }
+            onConfirm(`${data}T${hora}:00-03:00`);
+          }}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="remarcar-data">Novo dia</Label>
+              <Input
+                id="remarcar-data"
+                type="date"
+                required
+                className="h-12"
+                value={data}
+                onChange={(event) => setData(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="remarcar-hora">Novo horário</Label>
+              <Input
+                id="remarcar-hora"
+                type="time"
+                required
+                className="h-12"
+                value={hora}
+                onChange={(event) => setHora(event.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="h-12 rounded-full px-6" disabled={pending}>
+              {pending ? "Salvando..." : "Salvar e avisar no WhatsApp"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -17,33 +17,39 @@ export type Database = {
       agendamentos: {
         Row: {
           cliente_id: string
+          confirmacao_solicitada_em: string | null
           created_at: string
           empresa_id: string
           fim: string
           id: string
           inicio: string
+          lembrete_enviado_em: string | null
           observacao: string | null
           servico_id: string
           status: Database["public"]["Enums"]["status_agendamento"]
         }
         Insert: {
           cliente_id: string
+          confirmacao_solicitada_em?: string | null
           created_at?: string
           empresa_id: string
           fim: string
           id?: string
           inicio: string
+          lembrete_enviado_em?: string | null
           observacao?: string | null
           servico_id: string
           status?: Database["public"]["Enums"]["status_agendamento"]
         }
         Update: {
           cliente_id?: string
+          confirmacao_solicitada_em?: string | null
           created_at?: string
           empresa_id?: string
           fim?: string
           id?: string
           inicio?: string
+          lembrete_enviado_em?: string | null
           observacao?: string | null
           servico_id?: string
           status?: Database["public"]["Enums"]["status_agendamento"]
@@ -148,6 +154,7 @@ export type Database = {
           cor_texto: string
           created_at: string
           dias_semana: number[]
+          endereco: string
           hora_fim: string
           hora_inicio: string
           id: string
@@ -164,6 +171,7 @@ export type Database = {
           cor_texto?: string
           created_at?: string
           dias_semana?: number[]
+          endereco?: string
           hora_fim?: string
           hora_inicio?: string
           id?: string
@@ -180,6 +188,7 @@ export type Database = {
           cor_texto?: string
           created_at?: string
           dias_semana?: number[]
+          endereco?: string
           hora_fim?: string
           hora_inicio?: string
           id?: string
@@ -290,7 +299,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "master"
-      status_agendamento: "pendente" | "confirmado" | "cancelado" | "concluido"
+      status_agendamento: "pendente" | "aguardando_confirmacao" | "confirmado" | "cancelado" | "concluido"
       tipo_agenda:
         | "saude_bem_estar"
         | "beleza_estetica"
@@ -430,7 +439,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "master"],
-      status_agendamento: ["pendente", "confirmado", "cancelado", "concluido"],
+      status_agendamento: ["pendente", "aguardando_confirmacao", "confirmado", "cancelado", "concluido"],
       tipo_agenda: [
         "saude_bem_estar",
         "beleza_estetica",

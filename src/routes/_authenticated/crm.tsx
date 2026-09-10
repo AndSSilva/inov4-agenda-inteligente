@@ -1,21 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PainelShell } from "@/components/PainelShell";
+
+import { AdminShell } from "@/components/admin/AdminShell";
 import { StatusTag } from "@/components/StatusTag";
+import { Input } from "@/components/ui/input";
 import { listClientes } from "@/lib/painel.functions";
 import { dataCurta } from "@/lib/tempo";
 
 export const Route = createFileRoute("/_authenticated/crm")({
   head: () => ({
     meta: [
-      { title: "Clientes · CRM · Cronica" },
+      { title: "Clientes · Cronica" },
       {
         name: "description",
-        content: "Contatos capturados no pré-cadastro, com histórico e busca por nome ou telefone.",
+        content: "Contatos capturados no agendamento, com histórico e busca por nome ou telefone.",
       },
-      { property: "og:title", content: "Clientes · CRM · Cronica" },
+      { property: "og:title", content: "Clientes · Cronica" },
       { property: "og:description", content: "Base de contatos com histórico de agendamentos." },
     ],
   }),
@@ -39,56 +42,62 @@ function CrmPage() {
   }, [busca, data]);
 
   return (
-    <PainelShell empresaNome={data?.empresa.nome ?? "…"}>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium tracking-[0.14em] text-inksoft uppercase">CRM</p>
-          <h1 className="mt-1 text-2xl text-balance font-display">Seus contatos</h1>
-        </div>
-        <input
+    <AdminShell title="Clientes">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {data?.clientes.length ?? 0} contato(s) no total
+        </p>
+        <Input
           value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+          onChange={(event) => setBusca(event.target.value)}
           placeholder="Buscar por nome, telefone ou filiação"
-          className="w-full rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand sm:w-72"
+          className="h-12 w-full sm:w-72"
         />
       </div>
 
-      {isLoading && <p className="mt-4 text-sm text-inksoft">Carregando…</p>}
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
 
-      <div className="mt-4 overflow-hidden rounded-lg ring-1 ring-border">
-        <div className="hidden grid-cols-[1.3fr_1fr_1.2fr_0.7fr_0.9fr] gap-2 bg-cream/70 px-3 py-2 text-xs text-inksoft sm:grid">
-          <span>Nome</span>
-          <span>Telefone</span>
-          <span>Filiação</span>
-          <span>Visitas</span>
-          <span>Último</span>
+      {data && filtrados.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+          <Users className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
+          <h2 className="mt-4 text-lg font-semibold">Nenhum contato encontrado</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Contatos aparecem aqui assim que alguém agenda pela sua agenda pública.
+          </p>
         </div>
-        <div className="divide-y divide-border">
-          {filtrados.length === 0 && !isLoading && (
-            <p className="p-3 text-sm text-inksoft">Nenhum contato encontrado.</p>
-          )}
-          {filtrados.map((c) => (
-            <div
-              key={c.id}
-              className="grid gap-1 bg-paper px-3 py-2.5 text-sm sm:grid-cols-[1.3fr_1fr_1.2fr_0.7fr_0.9fr] sm:items-center sm:gap-2"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{c.nome}</p>
-                {c.email && <p className="truncate text-xs text-inksoft">{c.email}</p>}
-              </div>
-              <span className="text-inksoft">{c.telefone}</span>
-              <span className="truncate text-inksoft">{c.filiacao ?? "—"}</span>
-              <span className="text-inksoft">{c.total_agendamentos}</span>
-              <div className="flex items-center gap-2">
-                {c.ultimo_status ? <StatusTag status={c.ultimo_status} /> : null}
-                <span className="text-xs text-inksoft">
-                  {c.ultimo_em ? dataCurta(c.ultimo_em) : "—"}
-                </span>
-              </div>
-            </div>
-          ))}
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="hidden grid-cols-[1.3fr_1fr_1.2fr_0.7fr_0.9fr] gap-2 border-b border-border bg-muted/40 px-4 py-2.5 text-xs text-muted-foreground sm:grid">
+            <span>Nome</span>
+            <span>Telefone</span>
+            <span>Filiação</span>
+            <span>Visitas</span>
+            <span>Último</span>
+          </div>
+          <ul className="divide-y divide-border">
+            {filtrados.map((c) => (
+              <li
+                key={c.id}
+                className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1.3fr_1fr_1.2fr_0.7fr_0.9fr] sm:items-center sm:gap-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{c.nome}</p>
+                  {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
+                </div>
+                <span className="text-muted-foreground">{c.telefone}</span>
+                <span className="truncate text-muted-foreground">{c.filiacao ?? "—"}</span>
+                <span className="text-muted-foreground">{c.total_agendamentos}</span>
+                <div className="flex items-center gap-2">
+                  {c.ultimo_status ? <StatusTag status={c.ultimo_status} /> : null}
+                  <span className="text-xs text-muted-foreground">
+                    {c.ultimo_em ? dataCurta(c.ultimo_em) : "—"}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
-    </PainelShell>
+      )}
+    </AdminShell>
   );
 }

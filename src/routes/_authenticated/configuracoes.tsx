@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { PainelShell } from "@/components/PainelShell";
+
+import { AdminShell } from "@/components/admin/AdminShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getEmpresa, salvarEmpresa } from "@/lib/painel.functions";
 import { NOMES_DIAS } from "@/lib/tempo";
 
@@ -13,10 +17,10 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
       { title: "Configurações · Cronica" },
       {
         name: "description",
-        content: "Defina nome, link público, horário de funcionamento e dias de atendimento.",
+        content: "Defina nome, endereço, horário de funcionamento e dias de atendimento.",
       },
       { property: "og:title", content: "Configurações · Cronica" },
-      { property: "og:description", content: "Link público e horários de atendimento." },
+      { property: "og:description", content: "Endereço, link público e horários de atendimento." },
     ],
   }),
   component: ConfigPage,
@@ -26,10 +30,10 @@ function ConfigPage() {
   const carregar = useServerFn(getEmpresa);
   const salvar = useServerFn(salvarEmpresa);
   const qc = useQueryClient();
-  const { data } = useQuery({ queryKey: ["empresa"], queryFn: () => carregar() });
+  const { data } = useQuery({ queryKey: ["empresa-atual"], queryFn: () => carregar() });
 
   const [nome, setNome] = useState("");
-  const [slug, setSlug] = useState("");
+  const [endereco, setEndereco] = useState("");
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFim, setHoraFim] = useState("18:00");
   const [dias, setDias] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -37,7 +41,7 @@ function ConfigPage() {
   useEffect(() => {
     if (!data) return;
     setNome(data.nome);
-    setSlug(data.slug);
+    setEndereco(data.endereco);
     setHoraInicio(data.hora_inicio.slice(0, 5));
     setHoraFim(data.hora_fim.slice(0, 5));
     setDias(data.dias_semana);
@@ -46,12 +50,7 @@ function ConfigPage() {
   const mSalvar = useMutation({
     mutationFn: () =>
       salvar({
-        data: {
-          nome,
-          hora_inicio: horaInicio,
-          hora_fim: horaFim,
-          dias_semana: dias,
-        },
+        data: { nome, endereco, hora_inicio: horaInicio, hora_fim: horaFim, dias_semana: dias },
       }),
     onSuccess: (res) => {
       if (res.ok) {
@@ -64,74 +63,89 @@ function ConfigPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const link = typeof window === "undefined" ? "" : `${window.location.origin}/agendar/${slug}`;
+  const link =
+    typeof window === "undefined" ? "" : `${window.location.origin}/agendar/${data?.slug ?? ""}`;
 
   return (
-    <PainelShell empresaNome={data?.nome ?? "…"}>
-      <p className="text-xs font-medium tracking-[0.14em] text-inksoft uppercase">Configurações</p>
-      <h1 className="mt-1 text-2xl text-balance font-display">Sua empresa e link público</h1>
-
+    <AdminShell title="Configurações">
       <form
-        className="mt-4 grid max-w-xl gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
+        className="flex max-w-xl flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
           mSalvar.mutate();
         }}
       >
-        <label className="grid gap-1">
-          <span className="text-xs text-inksoft">Nome do negócio</span>
-          <input
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="config-nome">Nome do negócio</Label>
+          <Input
+            id="config-nome"
+            required
+            className="h-12"
             value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
+            onChange={(event) => setNome(event.target.value)}
           />
-        </label>
-        <label className="grid gap-1">
-          <span className="text-xs text-inksoft">Link público</span>
-          <input
-            value={slug}
-            disabled
-            readOnly
-            className="rounded-lg bg-cream/40 px-3 py-2 text-sm text-inksoft ring-1 ring-border outline-none"
-          />
-          <span className="truncate text-xs text-inksoft">
-            {link} · para alterar, fale com o administrador da plataforma
-          </span>
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="grid gap-1">
-            <span className="text-xs text-inksoft">Abre às</span>
-            <input
-              type="time"
-              value={horaInicio}
-              onChange={(e) => setHoraInicio(e.target.value)}
-              className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span className="text-xs text-inksoft">Fecha às</span>
-            <input
-              type="time"
-              value={horaFim}
-              onChange={(e) => setHoraFim(e.target.value)}
-              className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
-            />
-          </label>
         </div>
-        <div className="grid gap-1">
-          <span className="text-xs text-inksoft">Dias de atendimento</span>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="config-endereco">Endereço da loja</Label>
+          <Input
+            id="config-endereco"
+            placeholder="Rua, número, bairro, cidade"
+            className="h-12"
+            value={endereco}
+            onChange={(event) => setEndereco(event.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="config-slug">Link público</Label>
+          <Input id="config-slug" value={data?.slug ?? ""} disabled readOnly className="h-12" />
+          <p className="text-xs text-muted-foreground">
+            {link} · para alterar, fale com o administrador da plataforma
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="config-abre">Abre às</Label>
+            <Input
+              id="config-abre"
+              type="time"
+              className="h-12"
+              value={horaInicio}
+              onChange={(event) => setHoraInicio(event.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="config-fecha">Fecha às</Label>
+            <Input
+              id="config-fecha"
+              type="time"
+              className="h-12"
+              value={horaFim}
+              onChange={(event) => setHoraFim(event.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label>Dias de atendimento</Label>
           <div className="flex flex-wrap gap-1.5">
             {NOMES_DIAS.map((nomeDia, i) => {
-              const on = dias.includes(i);
+              const ligado = dias.includes(i);
               return (
                 <button
                   key={nomeDia}
                   type="button"
                   onClick={() =>
-                    setDias(on ? dias.filter((d) => d !== i) : [...dias, i].sort((a, b) => a - b))
+                    setDias(
+                      ligado ? dias.filter((d) => d !== i) : [...dias, i].sort((a, b) => a - b),
+                    )
                   }
-                  className={`rounded-md px-3 py-1.5 text-xs ring-1 ring-border ${
-                    on ? "bg-brand text-cream" : "bg-cream/60 text-inksoft"
+                  className={`h-10 rounded-full px-4 text-sm font-medium transition-colors ${
+                    ligado
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
                   }`}
                 >
                   {nomeDia}
@@ -140,14 +154,15 @@ function ConfigPage() {
             })}
           </div>
         </div>
-        <button
+
+        <Button
           type="submit"
+          className="mt-1 h-12 w-full justify-self-start rounded-full sm:w-auto sm:px-8"
           disabled={mSalvar.isPending}
-          className="mt-1 justify-self-start rounded-lg bg-brand px-4 py-2 text-sm font-medium text-cream shadow-slot ring-1 ring-brand disabled:opacity-60"
         >
-          Salvar
-        </button>
+          {mSalvar.isPending ? "Salvando..." : "Salvar"}
+        </Button>
       </form>
-    </PainelShell>
+    </AdminShell>
   );
 }

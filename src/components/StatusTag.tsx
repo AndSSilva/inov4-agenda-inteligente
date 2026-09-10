@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 const CORES: Record<string, string> = {
   pendente: "bg-pend/15 text-pend",
+  aguardando_confirmacao: "bg-gold/20 text-branddeep",
   confirmado: "bg-conf/15 text-conf",
   cancelado: "bg-canc/15 text-canc",
   concluido: "bg-conc/15 text-conc",

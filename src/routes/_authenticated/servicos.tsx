@@ -1,54 +1,53 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { PainelShell } from "@/components/PainelShell";
+
+import { AdminShell } from "@/components/admin/AdminShell";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { excluirServico, listServicos, salvarServico, type Servico } from "@/lib/painel.functions";
 import { moeda } from "@/lib/tempo";
 
 export const Route = createFileRoute("/_authenticated/servicos")({
   head: () => ({
     meta: [
-      { title: "Tipos de Agenda · Cronica" },
+      { title: "Cadastro · Cronica" },
       {
         name: "description",
         content: "Cadastre serviços com duração, preço e intervalo entre horários.",
       },
-      { property: "og:title", content: "Tipos de Agenda · Cronica" },
+      { property: "og:title", content: "Cadastro · Cronica" },
       { property: "og:description", content: "Serviços, duração, preço e intervalo." },
     ],
   }),
   component: ServicosPage,
 });
 
-const VAZIO = { nome: "", duracao_min: 30, preco: 0, intervalo_min: 10, ativo: true };
-
 function ServicosPage() {
   const carregar = useServerFn(listServicos);
-  const salvar = useServerFn(salvarServico);
   const excluir = useServerFn(excluirServico);
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["servicos"], queryFn: () => carregar() });
-  const [form, setForm] = useState<Partial<Servico> & typeof VAZIO>({ ...VAZIO });
+  const [form, setForm] = useState<Servico | "new" | null>(null);
+  const [remover, setRemover] = useState<Servico | null>(null);
 
-  const mSalvar = useMutation({
-    mutationFn: (payload: Partial<Servico> & typeof VAZIO) =>
-      salvar({
-        data: {
-          id: payload.id,
-          nome: payload.nome,
-          duracao_min: Number(payload.duracao_min),
-          preco: Number(payload.preco),
-          intervalo_min: Number(payload.intervalo_min),
-          ativo: payload.ativo,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Serviço salvo");
-      setForm({ ...VAZIO });
-      qc.invalidateQueries();
-    },
+  const salvar = useServerFn(salvarServico);
+  const mAtivo = useMutation({
+    mutationFn: (s: Servico) => salvar({ data: { ...s } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["servicos"] }),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -56,138 +55,246 @@ function ServicosPage() {
     mutationFn: (id: string) => excluir({ data: { id } }),
     onSuccess: () => {
       toast.success("Serviço removido");
-      qc.invalidateQueries();
+      qc.invalidateQueries({ queryKey: ["servicos"] });
+      setRemover(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <PainelShell empresaNome={data?.empresa.nome ?? "…"}>
-      <p className="text-xs font-medium tracking-[0.14em] text-inksoft uppercase">
-        Tipos de agenda
-      </p>
-      <h1 className="mt-1 text-2xl text-balance font-display">Serviços que o cliente pode marcar</h1>
-
-      <form
-        className="mt-4 grid gap-3 rounded-lg bg-cream/50 p-3 ring-1 ring-border sm:grid-cols-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (form.nome.trim().length < 2) {
-            toast.error("Informe o nome do serviço");
-            return;
-          }
-          mSalvar.mutate(form);
-        }}
-      >
-        <Campo
-          label="Nome"
-          className="sm:col-span-2"
-          value={form.nome}
-          onChange={(v) => setForm({ ...form, nome: v })}
-        />
-        <Campo
-          label="Duração (min)"
-          type="number"
-          value={String(form.duracao_min)}
-          onChange={(v) => setForm({ ...form, duracao_min: Number(v) })}
-        />
-        <Campo
-          label="Preço (R$)"
-          type="number"
-          value={String(form.preco)}
-          onChange={(v) => setForm({ ...form, preco: Number(v) })}
-        />
-        <Campo
-          label="Intervalo (min)"
-          type="number"
-          value={String(form.intervalo_min)}
-          onChange={(v) => setForm({ ...form, intervalo_min: Number(v) })}
-        />
-        <div className="flex items-center gap-2 sm:col-span-5">
-          <button
-            type="submit"
-            disabled={mSalvar.isPending}
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-cream shadow-slot ring-1 ring-brand disabled:opacity-60"
-          >
-            {form.id ? "Salvar alterações" : "Adicionar serviço"}
-          </button>
-          {form.id && (
-            <button
-              type="button"
-              onClick={() => setForm({ ...VAZIO })}
-              className="text-xs text-inksoft hover:text-ink"
-            >
-              Cancelar edição
-            </button>
-          )}
-        </div>
-      </form>
-
-      <div className="mt-4 grid gap-2">
-        {isLoading && <p className="text-sm text-inksoft">Carregando…</p>}
-        {(data?.servicos ?? []).map((s) => (
-          <div
-            key={s.id}
-            className="flex flex-wrap items-center gap-3 rounded-lg bg-cream/50 p-3 ring-1 ring-border"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">
-                {s.nome} {!s.ativo && <span className="text-xs text-inksoft">(inativo)</span>}
-              </p>
-              <p className="text-xs text-inksoft">
-                {s.duracao_min} min · {moeda(s.preco)} · intervalo {s.intervalo_min} min
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setForm({ ...s })}
-              className="rounded-md px-2.5 py-1 text-xs text-branddeep ring-1 ring-border"
-            >
-              Editar
-            </button>
-            <button
-              type="button"
-              onClick={() => mSalvar.mutate({ ...s, ativo: !s.ativo })}
-              className="rounded-md px-2.5 py-1 text-xs text-inksoft ring-1 ring-border"
-            >
-              {s.ativo ? "Desativar" : "Ativar"}
-            </button>
-            <button
-              type="button"
-              onClick={() => mExcluir.mutate(s.id)}
-              className="rounded-md px-2.5 py-1 text-xs text-canc ring-1 ring-border"
-            >
-              Excluir
-            </button>
-          </div>
-        ))}
+    <AdminShell title="Cadastro">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {data?.servicos.length ?? 0} serviço(s) cadastrado(s)
+        </p>
+        <Button className="h-12 w-full rounded-full px-5 sm:w-auto" onClick={() => setForm("new")}>
+          <Plus className="mr-1 h-4 w-4" aria-hidden />
+          Novo serviço
+        </Button>
       </div>
-    </PainelShell>
+
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+
+      {data && data.servicos.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+          <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
+          <h2 className="mt-4 text-lg font-semibold">Nenhum serviço ainda</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Cadastre o primeiro serviço para liberar sua agenda pública.
+          </p>
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {(data?.servicos ?? []).map((s) => (
+            <li
+              key={s.id}
+              className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">
+                  {s.nome}{" "}
+                  {!s.ativo && <span className="text-xs text-muted-foreground">(inativo)</span>}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {s.duracao_min} min · {moeda(s.preco)} · intervalo {s.intervalo_min} min
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <Switch
+                    checked={s.ativo}
+                    onCheckedChange={(checked) => mAtivo.mutate({ ...s, ativo: checked })}
+                    aria-label={`Ativar ${s.nome}`}
+                  />
+                  {s.ativo ? "Ativo" : "Inativo"}
+                </label>
+                <Button variant="outline" className="h-11 rounded-full" onClick={() => setForm(s)}>
+                  <Pencil className="mr-1 h-4 w-4" aria-hidden />
+                  Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 rounded-full text-destructive hover:text-destructive"
+                  onClick={() => setRemover(s)}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" aria-hidden />
+                  Excluir
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <ServicoDialog servico={form} onClose={() => setForm(null)} />
+
+      <Dialog
+        open={Boolean(remover)}
+        onOpenChange={(open) => (!open ? setRemover(null) : undefined)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir serviço</DialogTitle>
+            <DialogDescription>
+              Isso remove "{remover?.nome}" do cadastro. Agendamentos já feitos com esse serviço não
+              são afetados.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" className="h-12 rounded-full" onClick={() => setRemover(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              className="h-12 rounded-full px-6"
+              disabled={mExcluir.isPending}
+              onClick={() => remover && mExcluir.mutate(remover.id)}
+            >
+              {mExcluir.isPending ? "Removendo..." : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminShell>
   );
 }
 
-function Campo({
-  label,
-  value,
-  onChange,
-  type = "text",
-  className = "",
+const VAZIO = { nome: "", duracao_min: 30, preco: 0, intervalo_min: 10, ativo: true };
+
+function ServicoDialog({
+  servico,
+  onClose,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  className?: string;
+  servico: Servico | "new" | null;
+  onClose: () => void;
 }) {
+  const salvar = useServerFn(salvarServico);
+  const qc = useQueryClient();
+  const editando = servico && servico !== "new" ? servico : null;
+
+  const [nome, setNome] = useState("");
+  const [duracao, setDuracao] = useState(30);
+  const [preco, setPreco] = useState(0);
+  const [intervalo, setIntervalo] = useState(10);
+  const [ativo, setAtivo] = useState(true);
+  const [key, setKey] = useState<string | null>(null);
+
+  const currentKey = servico === "new" ? "new" : (editando?.id ?? null);
+  if (servico && currentKey !== key) {
+    setKey(currentKey);
+    setNome(editando?.nome ?? VAZIO.nome);
+    setDuracao(editando?.duracao_min ?? VAZIO.duracao_min);
+    setPreco(editando?.preco ?? VAZIO.preco);
+    setIntervalo(editando?.intervalo_min ?? VAZIO.intervalo_min);
+    setAtivo(editando?.ativo ?? VAZIO.ativo);
+  }
+
+  const mSalvar = useMutation({
+    mutationFn: () =>
+      salvar({
+        data: {
+          ...(editando ? { id: editando.id } : {}),
+          nome: nome.trim(),
+          duracao_min: duracao,
+          preco,
+          intervalo_min: intervalo,
+          ativo,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(editando ? "Serviço atualizado" : "Serviço criado");
+      qc.invalidateQueries({ queryKey: ["servicos"] });
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
-    <label className={`grid gap-1 ${className}`}>
-      <span className="text-xs text-inksoft">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg bg-paper px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
-      />
-    </label>
+    <Dialog open={Boolean(servico)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editando ? "Editar serviço" : "Novo serviço"}</DialogTitle>
+          <DialogDescription>Isso aparece pro cliente na sua agenda pública.</DialogDescription>
+        </DialogHeader>
+
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (nome.trim().length < 2) {
+              toast.error("Informe o nome do serviço");
+              return;
+            }
+            mSalvar.mutate();
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="servico-nome">Nome</Label>
+            <Input
+              id="servico-nome"
+              required
+              className="h-12"
+              value={nome}
+              onChange={(event) => setNome(event.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="servico-duracao">Duração (min)</Label>
+              <Input
+                id="servico-duracao"
+                type="number"
+                min={5}
+                max={600}
+                required
+                className="h-12"
+                value={duracao}
+                onChange={(event) => setDuracao(Number(event.target.value))}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="servico-intervalo">Intervalo (min)</Label>
+              <Input
+                id="servico-intervalo"
+                type="number"
+                min={0}
+                max={240}
+                required
+                className="h-12"
+                value={intervalo}
+                onChange={(event) => setIntervalo(Number(event.target.value))}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="servico-preco">Preço (R$)</Label>
+            <Input
+              id="servico-preco"
+              type="number"
+              min={0}
+              step="0.01"
+              required
+              className="h-12"
+              value={preco}
+              onChange={(event) => setPreco(Number(event.target.value))}
+            />
+          </div>
+
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+            <span className="text-sm font-medium">Serviço ativo</span>
+            <Switch checked={ativo} onCheckedChange={setAtivo} />
+          </label>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="h-12 rounded-full px-6" disabled={mSalvar.isPending}>
+              {mSalvar.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

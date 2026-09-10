@@ -7,9 +7,17 @@ export type Empresa = {
   id: string;
   nome: string;
   slug: string;
+  endereco: string;
   hora_inicio: string;
   hora_fim: string;
   dias_semana: number[];
+  logo_url: string | null;
+  cor_primaria: string;
+  cor_secundaria: string;
+  cor_fundo: string;
+  cor_texto: string;
+  tipo_agenda: string;
+  ativa: boolean;
 };
 
 export type Servico = {
@@ -31,6 +39,9 @@ export type AgendamentoItem = {
   cliente_filiacao: string | null;
   servico_nome: string;
   servico_preco: number;
+  servico_duracao_min: number;
+  confirmacao_solicitada_em: string | null;
+  lembrete_enviado_em: string | null;
 };
 
 export type ClienteItem = {
@@ -61,7 +72,9 @@ async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
 
   const { data: empresa, error } = await context.supabase
     .from("empresas")
-    .select("id, nome, slug, hora_inicio, hora_fim, dias_semana")
+    .select(
+      "id, nome, slug, endereco, hora_inicio, hora_fim, dias_semana, logo_url, cor_primaria, cor_secundaria, cor_fundo, cor_texto, tipo_agenda, ativa",
+    )
     .eq("id", vinculo.empresa_id)
     .single();
   if (error) throw new Error(error.message);
@@ -69,7 +82,7 @@ async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
 }
 
 const SELECT_AGENDAMENTO =
-  "id, inicio, fim, status, clientes(nome, telefone, filiacao), servicos(nome, preco)";
+  "id, inicio, fim, status, confirmacao_solicitada_em, lembrete_enviado_em, clientes(nome, telefone, filiacao), servicos(nome, preco, duracao_min)";
 
 function mapAgendamento(row: any): AgendamentoItem {
   return {
@@ -82,6 +95,9 @@ function mapAgendamento(row: any): AgendamentoItem {
     cliente_filiacao: row.clientes?.filiacao ?? null,
     servico_nome: row.servicos?.nome ?? "—",
     servico_preco: Number(row.servicos?.preco ?? 0),
+    servico_duracao_min: Number(row.servicos?.duracao_min ?? 30),
+    confirmacao_solicitada_em: row.confirmacao_solicitada_em ?? null,
+    lembrete_enviado_em: row.lembrete_enviado_em ?? null,
   };
 }
 
@@ -218,7 +234,9 @@ export const listAgenda = createServerFn({ method: "GET" })
     const ctx = context as unknown as Ctx;
     const empresa = await empresaDoUsuario(ctx);
     const inicio = new Date(isoLocal(data.de, "00:00")).toISOString();
-    const fim = new Date(new Date(isoLocal(data.ate, "00:00")).getTime() + 86_400_000).toISOString();
+    const fim = new Date(
+      new Date(isoLocal(data.ate, "00:00")).getTime() + 86_400_000,
+    ).toISOString();
     const { data: rows } = await ctx.supabase
       .from("agendamentos")
       .select(SELECT_AGENDAMENTO)
@@ -247,6 +265,98 @@ export const atualizarStatus = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/**
+ * Fila de gestão da tela "Agendamentos": separada em duas listas —
+ * pendentes de ação do admin, e aguardando o cliente confirmar (depois que
+ * o admin já mandou o pedido de confirmação pelo WhatsApp).
+ */
+export const listAgendamentosGestao = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as unknown as Ctx;
+    const empresa = await empresaDoUsuario(ctx);
+    const { data: rows } = await ctx.supabase
+      .from("agendamentos")
+      .select(SELECT_AGENDAMENTO)
+      .eq("empresa_id", empresa.id)
+      .in("status", ["pendente", "aguardando_confirmacao"])
+      .order("inicio", { ascending: true });
+
+    const todas = (rows ?? []).map(mapAgendamento) as AgendamentoItem[];
+    return {
+      empresa,
+      pendentes: todas.filter((a) => a.status === "pendente"),
+      aguardandoConfirmacao: todas.filter((a) => a.status === "aguardando_confirmacao"),
+    };
+  });
+
+/**
+ * Ações manuais da fila. Cada uma só atualiza o registro — o envio da
+ * mensagem pelo WhatsApp acontece no cliente (abre wa.me numa aba nova),
+ * porque não há integração automática com o WhatsApp.
+ */
+export const agirAgendamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        acao: z.enum(["confirmar", "lembrete", "cancelar", "cliente_confirmou"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const agora = new Date().toISOString();
+    const payload: Record<string, unknown> =
+      data.acao === "confirmar"
+        ? { status: "aguardando_confirmacao", confirmacao_solicitada_em: agora }
+        : data.acao === "lembrete"
+          ? { lembrete_enviado_em: agora }
+          : data.acao === "cancelar"
+            ? { status: "cancelado" }
+            : { status: "confirmado" };
+
+    const { error } = await ctx.supabase.from("agendamentos").update(payload).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Remarca pra um novo horário e recalcula o fim a partir da duração do serviço. */
+export const remarcarAgendamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), novoInicio: z.string().min(1) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const { data: atual, error: erroBusca } = await ctx.supabase
+      .from("agendamentos")
+      .select("servico_id, servicos(duracao_min)")
+      .eq("id", data.id)
+      .single();
+    if (erroBusca || !atual) throw new Error("Agendamento não encontrado.");
+
+    const duracaoMin = Number(
+      (atual as { servicos?: { duracao_min?: number } }).servicos?.duracao_min ?? 30,
+    );
+    const novoInicio = new Date(data.novoInicio);
+    if (Number.isNaN(novoInicio.getTime())) throw new Error("Data/hora inválida.");
+    const novoFim = new Date(novoInicio.getTime() + duracaoMin * 60_000);
+
+    const { error } = await ctx.supabase
+      .from("agendamentos")
+      .update({
+        inicio: novoInicio.toISOString(),
+        fim: novoFim.toISOString(),
+        status: "pendente",
+        confirmacao_solicitada_em: null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, novoInicio: novoInicio.toISOString() };
   });
 
 export const listClientes = createServerFn({ method: "GET" })
@@ -294,6 +404,7 @@ export const salvarEmpresa = createServerFn({ method: "POST" })
     z
       .object({
         nome: z.string().trim().min(2).max(80),
+        endereco: z.string().trim().max(200).optional().default(""),
         hora_inicio: z.string().regex(/^\d{2}:\d{2}$/),
         hora_fim: z.string().regex(/^\d{2}:\d{2}$/),
         dias_semana: z.array(z.number().int().min(0).max(6)).min(1),

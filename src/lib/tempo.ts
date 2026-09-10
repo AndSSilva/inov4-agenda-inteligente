@@ -59,6 +59,7 @@ export const NOMES_DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export const ROTULO_STATUS: Record<string, string> = {
   pendente: "Pendente",
+  aguardando_confirmacao: "Aguardando cliente",
   confirmado: "Confirmado",
   cancelado: "Cancelado",
   concluido: "Concluído",
