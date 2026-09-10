@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -8,17 +9,14 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useTemaVitrine } from "@/lib/tema-vitrine";
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/master/login")({
   head: () => ({
     meta: [
-      { title: "Acesso do administrador — Cronica" },
-      {
-        name: "description",
-        content: "Área restrita para gerenciar agenda, serviços e clientes.",
-      },
-      { name: "robots", content: "noindex" },
-      { property: "og:title", content: "Acesso do administrador" },
-      { property: "og:description", content: "Área restrita do painel." },
+      { title: "Acesso da plataforma" },
+      { name: "description", content: "Área interna da plataforma." },
+      { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Acesso da plataforma" },
+      { property: "og:description", content: "Área interna da plataforma." },
     ],
     links: [
       {
@@ -27,25 +25,16 @@ export const Route = createFileRoute("/auth")({
       },
     ],
   }),
-  component: AuthPage,
+  component: MasterLogin,
 });
 
-function AuthPage() {
+function MasterLogin() {
   useTemaVitrine();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) void navigate({ to: "/dashboard" });
-    });
-  }, [navigate]);
-
-  // O cadastro de empresa/admin é feito pelo Admin Master (/master) — não há
-  // mais autocadastro público aqui, era a origem do bug "primeiro usuário
-  // vira admin global".
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -53,18 +42,17 @@ function AuthPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
-      const userId = data.user?.id;
-      if (userId) {
-        const { data: isMaster } = await supabase.rpc("is_master", { _user_id: userId });
-        if (isMaster) {
-          void navigate({ to: "/master" });
-          return;
-        }
+      const { data: isMaster } = await supabase.rpc("is_master", {
+        _user_id: data.user!.id,
+      });
+      if (!isMaster) {
+        await supabase.auth.signOut();
+        throw new Error("Acesso restrito.");
       }
 
-      void navigate({ to: "/dashboard" });
-    } catch {
-      toast.error("E-mail ou senha inválidos.");
+      void navigate({ to: "/master" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
@@ -73,16 +61,17 @@ function AuthPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h1 className="text-2xl font-extrabold">Área do administrador</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Entre com os dados enviados pelo administrador da plataforma.
-        </p>
+        <span className="grid h-12 w-12 place-items-center rounded-xl bg-secondary text-secondary-foreground">
+          <ShieldCheck className="h-5 w-5" aria-hidden />
+        </span>
+        <h1 className="mt-4 text-2xl font-extrabold">Acesso da plataforma</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Área interna restrita.</p>
 
         <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="master-email">E-mail</Label>
             <Input
-              id="email"
+              id="master-email"
               type="email"
               autoComplete="email"
               required
@@ -92,25 +81,20 @@ function AuthPage() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Senha</Label>
+            <Label htmlFor="master-password">Senha</Label>
             <Input
-              id="password"
+              id="master-password"
               type="password"
               autoComplete="current-password"
               required
-              minLength={6}
               className="h-12"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
           </div>
-
           <Button type="submit" className="h-12 rounded-full text-base" disabled={loading}>
             {loading ? "Aguarde..." : "Entrar"}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            Não tem acesso? Peça ao administrador da plataforma para criar sua conta.
-          </p>
         </form>
       </div>
     </main>

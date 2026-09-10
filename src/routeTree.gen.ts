@@ -18,6 +18,8 @@ import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/cr
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
+import { Route as MasterLoginRouteImport } from './routes/master.login'
+import { Route as AuthenticatedMasterIndexRouteImport } from './routes/_authenticated/master.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +66,17 @@ const AgendarSlugRoute = AgendarSlugRouteImport.update({
   path: '/agendar/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MasterLoginRoute = MasterLoginRouteImport.update({
+  id: '/master/login',
+  path: '/master/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedMasterIndexRoute =
+  AuthenticatedMasterIndexRouteImport.update({
+    id: '/master/',
+    path: '/master/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -74,6 +87,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/agendar/$slug': typeof AgendarSlugRoute
+  '/master/login': typeof MasterLoginRoute
+  '/master/': typeof AuthenticatedMasterIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,6 +99,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/agendar/$slug': typeof AgendarSlugRoute
+  '/master/login': typeof MasterLoginRoute
+  '/master': typeof AuthenticatedMasterIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,6 +113,8 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/agendar/$slug': typeof AgendarSlugRoute
+  '/master/login': typeof MasterLoginRoute
+  '/_authenticated/master/': typeof AuthenticatedMasterIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,6 +127,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/servicos'
     | '/agendar/$slug'
+    | '/master/login'
+    | '/master/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -118,6 +139,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/servicos'
     | '/agendar/$slug'
+    | '/master/login'
+    | '/master'
   id:
     | '__root__'
     | '/'
@@ -129,6 +152,8 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/servicos'
     | '/agendar/$slug'
+    | '/master/login'
+    | '/_authenticated/master/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -136,6 +161,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   AgendarSlugRoute: typeof AgendarSlugRoute
+  MasterLoginRoute: typeof MasterLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,6 +229,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgendarSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/master/login': {
+      id: '/master/login'
+      path: '/master/login'
+      fullPath: '/master/login'
+      preLoaderRoute: typeof MasterLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/master/': {
+      id: '/_authenticated/master/'
+      path: '/master'
+      fullPath: '/master/'
+      preLoaderRoute: typeof AuthenticatedMasterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -212,6 +252,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
+  AuthenticatedMasterIndexRoute: typeof AuthenticatedMasterIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -220,6 +261,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
+  AuthenticatedMasterIndexRoute: AuthenticatedMasterIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -230,6 +272,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   AgendarSlugRoute: AgendarSlugRoute,
+  MasterLoginRoute: MasterLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

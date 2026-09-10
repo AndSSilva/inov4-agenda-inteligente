@@ -1,0 +1,1882 @@
+diff --git a/src/integrations/supabase/types.ts b/src/integrations/supabase/types.ts
+index b9fe50e..0f57c2e 100644
+--- a/src/integrations/supabase/types.ts
++++ b/src/integrations/supabase/types.ts
+@@ -110,36 +110,104 @@ export type Database = {
+           },
+         ]
+       }
++      empresa_admins: {
++        Row: {
++          created_at: string
++          empresa_id: string
++          full_name: string
++          user_id: string
++        }
++        Insert: {
++          created_at?: string
++          empresa_id: string
++          full_name?: string
++          user_id: string
++        }
++        Update: {
++          created_at?: string
++          empresa_id?: string
++          full_name?: string
++          user_id?: string
++        }
++        Relationships: [
++          {
++            foreignKeyName: "empresa_admins_empresa_id_fkey"
++            columns: ["empresa_id"]
++            isOneToOne: false
++            referencedRelation: "empresas"
++            referencedColumns: ["id"]
++          },
++        ]
++      }
+       empresas: {
+         Row: {
++          ativa: boolean
++          cor_fundo: string
++          cor_primaria: string
++          cor_secundaria: string
++          cor_texto: string
+           created_at: string
+           dias_semana: number[]
+           hora_fim: string
+           hora_inicio: string
+           id: string
++          logo_url: string | null
+           nome: string
+-          owner_id: string | null
+           slug: string
++          tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
+         }
+         Insert: {
++          ativa?: boolean
++          cor_fundo?: string
++          cor_primaria?: string
++          cor_secundaria?: string
++          cor_texto?: string
+           created_at?: string
+           dias_semana?: number[]
+           hora_fim?: string
+           hora_inicio?: string
+           id?: string
++          logo_url?: string | null
+           nome: string
+-          owner_id?: string | null
+           slug: string
++          tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
+         }
+         Update: {
++          ativa?: boolean
++          cor_fundo?: string
++          cor_primaria?: string
++          cor_secundaria?: string
++          cor_texto?: string
+           created_at?: string
+           dias_semana?: number[]
+           hora_fim?: string
+           hora_inicio?: string
+           id?: string
++          logo_url?: string | null
+           nome?: string
+-          owner_id?: string | null
+           slug?: string
++          tipo_agenda?: Database["public"]["Enums"]["tipo_agenda"]
++        }
++        Relationships: []
++      }
++      user_roles: {
++        Row: {
++          created_at: string
++          id: string
++          role: Database["public"]["Enums"]["app_role"]
++          user_id: string
++        }
++        Insert: {
++          created_at?: string
++          id?: string
++          role: Database["public"]["Enums"]["app_role"]
++          user_id: string
++        }
++        Update: {
++          created_at?: string
++          id?: string
++          role?: Database["public"]["Enums"]["app_role"]
++          user_id?: string
+         }
+         Relationships: []
+       }
+@@ -202,6 +270,12 @@ export type Database = {
+         Returns: string
+       }
+       eh_dono: { Args: { _empresa: string }; Returns: boolean }
++      empresa_ativa: { Args: { _empresa_id: string }; Returns: boolean }
++      empresa_do_admin: { Args: { _user_id: string }; Returns: string }
++      has_role: {
++        Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
++        Returns: boolean
++      }
+       horarios_ocupados: {
+         Args: { p_data: string; p_empresa: string }
+         Returns: {
+@@ -209,10 +283,22 @@ export type Database = {
+           inicio: string
+         }[]
+       }
+-      provisionar_empresa: { Args: never; Returns: string }
++      is_master: { Args: { _user_id: string }; Returns: boolean }
+     }
+     Enums: {
++      app_role: "admin" | "master"
+       status_agendamento: "pendente" | "confirmado" | "cancelado" | "concluido"
++      tipo_agenda:
++        | "saude_bem_estar"
++        | "beleza_estetica"
++        | "servicos_profissionais_consultoria"
++        | "educacao_treinamentos"
++        | "esporte_fitness_lazer"
++        | "automotivo_servicos_gerais"
++        | "eventos_gastronomia_entretenimento"
++        | "servicos_publicos_governamentais"
++        | "corporativo_rh"
++        | "pet_shop_veterinaria"
+     }
+     CompositeTypes: {
+       [_ in never]: never
+@@ -340,7 +426,20 @@ export type CompositeTypes<
+ export const Constants = {
+   public: {
+     Enums: {
++      app_role: ["admin", "master"],
+       status_agendamento: ["pendente", "confirmado", "cancelado", "concluido"],
++      tipo_agenda: [
++        "saude_bem_estar",
++        "beleza_estetica",
++        "servicos_profissionais_consultoria",
++        "educacao_treinamentos",
++        "esporte_fitness_lazer",
++        "automotivo_servicos_gerais",
++        "eventos_gastronomia_entretenimento",
++        "servicos_publicos_governamentais",
++        "corporativo_rh",
++        "pet_shop_veterinaria",
++      ],
+     },
+   },
+ } as const
+diff --git a/src/lib/empresas-utils.ts b/src/lib/empresas-utils.ts
+new file mode 100644
+index 0000000..6de87ba
+--- /dev/null
++++ b/src/lib/empresas-utils.ts
+@@ -0,0 +1,37 @@
++export function slugify(value: string): string {
++  return value
++    .normalize("NFD")
++    .replace(/[\u0300-\u036f]/g, "")
++    .toLowerCase()
++    .replace(/[^a-z0-9]+/g, "-")
++    .replace(/(^-|-$)/g, "")
++    .slice(0, 60);
++}
++
++export const TIPO_AGENDA_VALUES = [
++  "saude_bem_estar",
++  "beleza_estetica",
++  "servicos_profissionais_consultoria",
++  "educacao_treinamentos",
++  "esporte_fitness_lazer",
++  "automotivo_servicos_gerais",
++  "eventos_gastronomia_entretenimento",
++  "servicos_publicos_governamentais",
++  "corporativo_rh",
++  "pet_shop_veterinaria",
++] as const;
++
++export type TipoAgenda = (typeof TIPO_AGENDA_VALUES)[number];
++
++export const TIPO_AGENDA_LABELS: Record<TipoAgenda, string> = {
++  saude_bem_estar: "Saúde e Bem-estar",
++  beleza_estetica: "Beleza e Estética",
++  servicos_profissionais_consultoria: "Serviços Profissionais e Consultoria",
++  educacao_treinamentos: "Educação e Treinamentos",
++  esporte_fitness_lazer: "Esporte, Fitness e Lazer",
++  automotivo_servicos_gerais: "Automotivo e Serviços Gerais",
++  eventos_gastronomia_entretenimento: "Eventos, Gastronomia e Entretenimento",
++  servicos_publicos_governamentais: "Serviços Públicos e Governamentais",
++  corporativo_rh: "Corporativo e Recursos Humanos",
++  pet_shop_veterinaria: "Pet Shop e Veterinária",
++};
+diff --git a/src/lib/master-data.ts b/src/lib/master-data.ts
+new file mode 100644
+index 0000000..eb87292
+--- /dev/null
++++ b/src/lib/master-data.ts
+@@ -0,0 +1,117 @@
++import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
++
++import { supabase } from "@/integrations/supabase/client";
++import {
++  criarAdminEmpresa,
++  definirEmpresaAtiva,
++  excluirEmpresaMaster,
++  listEmpresasMaster,
++  salvarEmpresaMaster,
++} from "./master.functions";
++import type { TipoAgenda } from "./empresas-utils";
++
++export function useIsMaster() {
++  return useQuery({
++    queryKey: ["is-master"],
++    queryFn: async () => {
++      const { data: userData } = await supabase.auth.getUser();
++      const userId = userData.user?.id;
++      if (!userId) return false;
++      const { data, error } = await supabase.rpc("is_master", { _user_id: userId });
++      if (error) throw error;
++      return Boolean(data);
++    },
++    staleTime: 30_000,
++  });
++}
++
++export function useMasterEmpresas() {
++  return useQuery({
++    queryKey: ["master-empresas"],
++    queryFn: () => listEmpresasMaster(),
++  });
++}
++
++function useInvalidateEmpresas() {
++  const queryClient = useQueryClient();
++  return () => {
++    void queryClient.invalidateQueries({ queryKey: ["master-empresas"] });
++  };
++}
++
++export type EmpresaInput = {
++  id?: string | undefined;
++  nome: string;
++  slug: string;
++  corPrimaria: string;
++  corSecundaria: string;
++  corFundo: string;
++  corTexto: string;
++  tipoAgenda: TipoAgenda;
++  ativa: boolean;
++  logoFile?: File | null;
++};
++
++async function codificarLogo(file: File) {
++  const buffer = new Uint8Array(await file.arrayBuffer());
++  let binary = "";
++  for (const byte of buffer) binary += String.fromCharCode(byte);
++  return {
++    base64: btoa(binary),
++    contentType: file.type || "image/png",
++    extension: (file.name.split(".").pop() ?? "png").toLowerCase().slice(0, 5),
++  };
++}
++
++export function useSalvarEmpresa() {
++  const invalidate = useInvalidateEmpresas();
++  return useMutation({
++    mutationFn: async (input: EmpresaInput) => {
++      if (input.logoFile && input.logoFile.size > 2_000_000) {
++        throw new Error("A logo deve ter no máximo 2 MB.");
++      }
++      const logo = input.logoFile ? await codificarLogo(input.logoFile) : null;
++      return salvarEmpresaMaster({
++        data: {
++          ...(input.id ? { id: input.id } : {}),
++          nome: input.nome,
++          slug: input.slug,
++          corPrimaria: input.corPrimaria,
++          corSecundaria: input.corSecundaria,
++          corFundo: input.corFundo,
++          corTexto: input.corTexto,
++          tipoAgenda: input.tipoAgenda,
++          ativa: input.ativa,
++          logo,
++        },
++      });
++    },
++    onSuccess: invalidate,
++  });
++}
++
++export function useDefinirEmpresaAtiva() {
++  const invalidate = useInvalidateEmpresas();
++  return useMutation({
++    mutationFn: (input: { id: string; ativa: boolean }) => definirEmpresaAtiva({ data: input }),
++    onSuccess: invalidate,
++  });
++}
++
++export function useCriarAdminEmpresa() {
++  const invalidate = useInvalidateEmpresas();
++  return useMutation({
++    mutationFn: (input: { empresaId: string; fullName: string; email: string; password: string }) =>
++      criarAdminEmpresa({ data: input }),
++    onSuccess: invalidate,
++  });
++}
++
++export function useExcluirEmpresa() {
++  const invalidate = useInvalidateEmpresas();
++  return useMutation({
++    mutationFn: (input: { id: string; confirmSlug: string }) =>
++      excluirEmpresaMaster({ data: input }),
++    onSuccess: invalidate,
++  });
++}
+diff --git a/src/lib/master.functions.ts b/src/lib/master.functions.ts
+new file mode 100644
+index 0000000..39663f1
+--- /dev/null
++++ b/src/lib/master.functions.ts
+@@ -0,0 +1,253 @@
++import { createServerFn } from "@tanstack/react-start";
++import { z } from "zod";
++
++import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
++import { TIPO_AGENDA_VALUES } from "./empresas-utils";
++
++const LOGO_URL_TTL = 60 * 60 * 24 * 365 * 10; // 10 anos
++
++export type MasterEmpresa = {
++  id: string;
++  nome: string;
++  slug: string;
++  logoUrl: string | null;
++  corPrimaria: string;
++  corSecundaria: string;
++  corFundo: string;
++  corTexto: string;
++  tipoAgenda: string;
++  ativa: boolean;
++  createdAt: string;
++  admins: { userId: string; fullName: string; email: string }[];
++};
++
++/** Toda ação do Admin Master exige o papel `master` verificado no banco. */
++async function assertMaster(context: { supabase: unknown; userId: string }) {
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- contexto genérico do middleware de auth
++  const { data, error } = await (context.supabase as any).rpc("is_master", {
++    _user_id: context.userId,
++  });
++  if (error) throw new Error("Não foi possível validar a permissão.");
++  if (!data) throw new Error("Acesso restrito.");
++}
++
++export const listEmpresasMaster = createServerFn({ method: "GET" })
++  .middleware([requireSupabaseAuth])
++  .handler(async ({ context }): Promise<MasterEmpresa[]> => {
++    await assertMaster(context);
++    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
++
++    const [{ data: empresas, error }, { data: membros }, { data: usersData }] = await Promise.all([
++      supabaseAdmin
++        .from("empresas")
++        .select(
++          "id, nome, slug, logo_url, cor_primaria, cor_secundaria, cor_fundo, cor_texto, tipo_agenda, ativa, created_at",
++        )
++        .order("created_at", { ascending: true }),
++      supabaseAdmin.from("empresa_admins").select("user_id, empresa_id, full_name"),
++      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
++    ]);
++
++    if (error) throw new Error("Não foi possível carregar as empresas.");
++
++    const emails = new Map((usersData?.users ?? []).map((user) => [user.id, user.email ?? ""]));
++
++    return (empresas ?? []).map((empresa) => ({
++      id: empresa.id,
++      nome: empresa.nome,
++      slug: empresa.slug,
++      logoUrl: empresa.logo_url,
++      corPrimaria: empresa.cor_primaria,
++      corSecundaria: empresa.cor_secundaria,
++      corFundo: empresa.cor_fundo,
++      corTexto: empresa.cor_texto,
++      tipoAgenda: empresa.tipo_agenda,
++      ativa: empresa.ativa,
++      createdAt: empresa.created_at,
++      admins: (membros ?? [])
++        .filter((membro) => membro.empresa_id === empresa.id)
++        .map((membro) => ({
++          userId: membro.user_id,
++          fullName: membro.full_name,
++          email: emails.get(membro.user_id) ?? "",
++        })),
++    }));
++  });
++
++const hex = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Cor inválida");
++const hexOrEmpty = z
++  .string()
++  .refine((v) => v === "" || /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v), "Cor inválida");
++
++const empresaSchema = z.object({
++  id: z.string().uuid().optional(),
++  nome: z.string().trim().min(2).max(80),
++  slug: z
++    .string()
++    .trim()
++    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "Endereço inválido")
++    .min(2)
++    .max(60),
++  corPrimaria: hex,
++  corSecundaria: hex,
++  corFundo: hexOrEmpty.optional().default(""),
++  corTexto: hexOrEmpty.optional().default(""),
++  tipoAgenda: z.enum(TIPO_AGENDA_VALUES),
++  ativa: z.boolean(),
++  logo: z
++    .object({
++      base64: z.string().min(10).max(4_000_000),
++      contentType: z.string().min(3).max(80),
++      extension: z.string().min(2).max(6),
++    })
++    .nullable()
++    .optional(),
++});
++
++const SLUGS_RESERVADOS = new Set(["admin", "master", "api", "agendar", "_authenticated", "auth"]);
++
++export const salvarEmpresaMaster = createServerFn({ method: "POST" })
++  .middleware([requireSupabaseAuth])
++  .inputValidator((input) => empresaSchema.parse(input))
++  .handler(async ({ data, context }) => {
++    await assertMaster(context);
++    if (SLUGS_RESERVADOS.has(data.slug)) throw new Error("Este endereço é reservado.");
++
++    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
++
++    let logoUrl: string | null = null;
++    if (data.logo) {
++      const bytes = Uint8Array.from(atob(data.logo.base64), (char) => char.charCodeAt(0));
++      const path = `logos/${crypto.randomUUID()}.${data.logo.extension}`;
++      const { error: uploadError } = await supabaseAdmin.storage
++        .from("empresa-logos")
++        .upload(path, bytes, { contentType: data.logo.contentType, cacheControl: "31536000" });
++      if (uploadError) throw new Error("Falha ao enviar a logo.");
++      const { data: signed } = await supabaseAdmin.storage
++        .from("empresa-logos")
++        .createSignedUrl(path, LOGO_URL_TTL);
++      logoUrl = signed?.signedUrl ?? null;
++    }
++
++    const payload = {
++      nome: data.nome,
++      slug: data.slug,
++      cor_primaria: data.corPrimaria,
++      cor_secundaria: data.corSecundaria,
++      cor_fundo: data.corFundo,
++      cor_texto: data.corTexto,
++      tipo_agenda: data.tipoAgenda,
++      ativa: data.ativa,
++      ...(logoUrl ? { logo_url: logoUrl } : {}),
++    };
++
++    if (data.id) {
++      const { error } = await supabaseAdmin.from("empresas").update(payload).eq("id", data.id);
++      if (error) throw new Error(error.message);
++      return { id: data.id };
++    }
++
++    const { data: criada, error } = await supabaseAdmin
++      .from("empresas")
++      .insert(payload)
++      .select("id")
++      .single();
++    if (error || !criada) throw new Error(error?.message ?? "Falha ao criar a empresa.");
++
++    return { id: criada.id };
++  });
++
++export const definirEmpresaAtiva = createServerFn({ method: "POST" })
++  .middleware([requireSupabaseAuth])
++  .inputValidator((input) => z.object({ id: z.string().uuid(), ativa: z.boolean() }).parse(input))
++  .handler(async ({ data, context }) => {
++    await assertMaster(context);
++    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
++    const { error } = await supabaseAdmin
++      .from("empresas")
++      .update({ ativa: data.ativa })
++      .eq("id", data.id);
++    if (error) throw new Error(error.message);
++    return { ok: true as const };
++  });
++
++/** Exclusão definitiva: apaga serviços, clientes, agendamentos e contas de admin da empresa. */
++export const excluirEmpresaMaster = createServerFn({ method: "POST" })
++  .middleware([requireSupabaseAuth])
++  .inputValidator((input) =>
++    z.object({ id: z.string().uuid(), confirmSlug: z.string().trim().min(1) }).parse(input),
++  )
++  .handler(async ({ data, context }) => {
++    await assertMaster(context);
++    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
++
++    const { data: empresa, error: loadError } = await supabaseAdmin
++      .from("empresas")
++      .select("id, slug")
++      .eq("id", data.id)
++      .single();
++    if (loadError || !empresa) throw new Error("Empresa não encontrada.");
++    if (empresa.slug !== data.confirmSlug)
++      throw new Error("Confirmação não corresponde ao endereço da empresa.");
++
++    await supabaseAdmin.from("agendamentos").delete().eq("empresa_id", empresa.id);
++    await supabaseAdmin.from("clientes").delete().eq("empresa_id", empresa.id);
++    await supabaseAdmin.from("servicos").delete().eq("empresa_id", empresa.id);
++
++    const { data: membros } = await supabaseAdmin
++      .from("empresa_admins")
++      .select("user_id")
++      .eq("empresa_id", empresa.id);
++    await supabaseAdmin.from("empresa_admins").delete().eq("empresa_id", empresa.id);
++
++    for (const membro of membros ?? []) {
++      await supabaseAdmin.from("user_roles").delete().eq("user_id", membro.user_id);
++      await supabaseAdmin.auth.admin.deleteUser(membro.user_id);
++    }
++
++    const { error } = await supabaseAdmin.from("empresas").delete().eq("id", empresa.id);
++    if (error) throw new Error(error.message);
++    return { ok: true as const };
++  });
++
++export const criarAdminEmpresa = createServerFn({ method: "POST" })
++  .middleware([requireSupabaseAuth])
++  .inputValidator((input) =>
++    z
++      .object({
++        empresaId: z.string().uuid(),
++        fullName: z.string().trim().min(2).max(120),
++        email: z.string().trim().email(),
++        password: z.string().min(8).max(72),
++      })
++      .parse(input),
++  )
++  .handler(async ({ data, context }) => {
++    await assertMaster(context);
++    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
++
++    const { data: criado, error } = await supabaseAdmin.auth.admin.createUser({
++      email: data.email,
++      password: data.password,
++      email_confirm: true,
++      user_metadata: { full_name: data.fullName },
++    });
++    if (error || !criado.user) throw new Error(error?.message ?? "Falha ao criar o usuário.");
++
++    const userId = criado.user.id;
++
++    const { error: vinculoError } = await supabaseAdmin
++      .from("empresa_admins")
++      .insert({ user_id: userId, empresa_id: data.empresaId, full_name: data.fullName });
++    if (vinculoError) {
++      await supabaseAdmin.auth.admin.deleteUser(userId);
++      throw new Error("Falha ao vincular o administrador à empresa.");
++    }
++
++    const { error: roleError } = await supabaseAdmin
++      .from("user_roles")
++      .insert({ user_id: userId, role: "admin" });
++    if (roleError) throw new Error("Falha ao conceder o acesso de administrador.");
++
++    return { ok: true as const };
++  });
+diff --git a/src/lib/painel.functions.ts b/src/lib/painel.functions.ts
+index f686a2e..7f66ed1 100644
+--- a/src/lib/painel.functions.ts
++++ b/src/lib/painel.functions.ts
+@@ -46,24 +46,26 @@ export type ClienteItem = {
+ 
+ type Ctx = { supabase: any; userId: string };
+ 
++/**
++ * Empresa do administrador logado. O vínculo é definido pelo Admin Master
++ * (tabela empresa_admins) — não existe mais autocadastro no primeiro login.
++ */
+ async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
+-  const { data: existente } = await context.supabase
+-    .from("empresas")
+-    .select("id, nome, slug, hora_inicio, hora_fim, dias_semana")
+-    .eq("owner_id", context.userId)
++  const { data: vinculo, error: erroVinculo } = await context.supabase
++    .from("empresa_admins")
++    .select("empresa_id")
++    .eq("user_id", context.userId)
+     .maybeSingle();
+-  if (existente) return existente as Empresa;
++  if (erroVinculo) throw new Error(erroVinculo.message);
++  if (!vinculo) throw new Error("Sua conta não está vinculada a nenhuma empresa.");
+ 
+-  const { error } = await context.supabase.rpc("provisionar_empresa");
+-  if (error) throw new Error(error.message);
+-
+-  const { data: criada, error: erroBusca } = await context.supabase
++  const { data: empresa, error } = await context.supabase
+     .from("empresas")
+     .select("id, nome, slug, hora_inicio, hora_fim, dias_semana")
+-    .eq("owner_id", context.userId)
++    .eq("id", vinculo.empresa_id)
+     .single();
+-  if (erroBusca) throw new Error(erroBusca.message);
+-  return criada as Empresa;
++  if (error) throw new Error(error.message);
++  return empresa as Empresa;
+ }
+ 
+ const SELECT_AGENDAMENTO =
+@@ -283,18 +285,15 @@ export const listClientes = createServerFn({ method: "GET" })
+     return { empresa, clientes: lista };
+   });
+ 
++// O slug NÃO é editável por aqui: é a rota pública (/agendar/$slug) e fica sob
++// controle exclusivo do Admin Master (evita a empresa quebrar o próprio link
++// publicado ou colidir com outra). Ver src/lib/master.functions.ts.
+ export const salvarEmpresa = createServerFn({ method: "POST" })
+   .middleware([requireSupabaseAuth])
+   .inputValidator((input: unknown) =>
+     z
+       .object({
+         nome: z.string().trim().min(2).max(80),
+-        slug: z
+-          .string()
+-          .trim()
+-          .min(3)
+-          .max(60)
+-          .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífens"),
+         hora_inicio: z.string().regex(/^\d{2}:\d{2}$/),
+         hora_fim: z.string().regex(/^\d{2}:\d{2}$/),
+         dias_semana: z.array(z.number().int().min(0).max(6)).min(1),
+diff --git a/src/routeTree.gen.ts b/src/routeTree.gen.ts
+index d91ff8d..24c5c86 100644
+--- a/src/routeTree.gen.ts
++++ b/src/routeTree.gen.ts
+@@ -18,6 +18,8 @@ import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/cr
+ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+ import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
+ import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
++import { Route as MasterLoginRouteImport } from './routes/master.login'
++import { Route as AuthenticatedMasterIndexRouteImport } from './routes/_authenticated/master.index'
+ 
+ const IndexRoute = IndexRouteImport.update({
+   id: '/',
+@@ -64,6 +66,17 @@ const AgendarSlugRoute = AgendarSlugRouteImport.update({
+   path: '/agendar/$slug',
+   getParentRoute: () => rootRouteImport,
+ } as any)
++const MasterLoginRoute = MasterLoginRouteImport.update({
++  id: '/master/login',
++  path: '/master/login',
++  getParentRoute: () => rootRouteImport,
++} as any)
++const AuthenticatedMasterIndexRoute =
++  AuthenticatedMasterIndexRouteImport.update({
++    id: '/master/',
++    path: '/master/',
++    getParentRoute: () => AuthenticatedRouteRoute,
++  } as any)
+ 
+ export interface FileRoutesByFullPath {
+   '/': typeof IndexRoute
+@@ -74,6 +87,8 @@ export interface FileRoutesByFullPath {
+   '/dashboard': typeof AuthenticatedDashboardRoute
+   '/servicos': typeof AuthenticatedServicosRoute
+   '/agendar/$slug': typeof AgendarSlugRoute
++  '/master/login': typeof MasterLoginRoute
++  '/master/': typeof AuthenticatedMasterIndexRoute
+ }
+ export interface FileRoutesByTo {
+   '/': typeof IndexRoute
+@@ -84,6 +99,8 @@ export interface FileRoutesByTo {
+   '/dashboard': typeof AuthenticatedDashboardRoute
+   '/servicos': typeof AuthenticatedServicosRoute
+   '/agendar/$slug': typeof AgendarSlugRoute
++  '/master/login': typeof MasterLoginRoute
++  '/master': typeof AuthenticatedMasterIndexRoute
+ }
+ export interface FileRoutesById {
+   __root__: typeof rootRouteImport
+@@ -96,6 +113,8 @@ export interface FileRoutesById {
+   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
+   '/agendar/$slug': typeof AgendarSlugRoute
++  '/master/login': typeof MasterLoginRoute
++  '/_authenticated/master/': typeof AuthenticatedMasterIndexRoute
+ }
+ export interface FileRouteTypes {
+   fileRoutesByFullPath: FileRoutesByFullPath
+@@ -108,6 +127,8 @@ export interface FileRouteTypes {
+     | '/dashboard'
+     | '/servicos'
+     | '/agendar/$slug'
++    | '/master/login'
++    | '/master/'
+   fileRoutesByTo: FileRoutesByTo
+   to:
+     | '/'
+@@ -118,6 +139,8 @@ export interface FileRouteTypes {
+     | '/dashboard'
+     | '/servicos'
+     | '/agendar/$slug'
++    | '/master/login'
++    | '/master'
+   id:
+     | '__root__'
+     | '/'
+@@ -129,6 +152,8 @@ export interface FileRouteTypes {
+     | '/_authenticated/dashboard'
+     | '/_authenticated/servicos'
+     | '/agendar/$slug'
++    | '/master/login'
++    | '/_authenticated/master/'
+   fileRoutesById: FileRoutesById
+ }
+ export interface RootRouteChildren {
+@@ -136,6 +161,7 @@ export interface RootRouteChildren {
+   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+   AuthRoute: typeof AuthRoute
+   AgendarSlugRoute: typeof AgendarSlugRoute
++  MasterLoginRoute: typeof MasterLoginRoute
+ }
+ 
+ declare module '@tanstack/react-router' {
+@@ -203,6 +229,20 @@ declare module '@tanstack/react-router' {
+       preLoaderRoute: typeof AgendarSlugRouteImport
+       parentRoute: typeof rootRouteImport
+     }
++    '/master/login': {
++      id: '/master/login'
++      path: '/master/login'
++      fullPath: '/master/login'
++      preLoaderRoute: typeof MasterLoginRouteImport
++      parentRoute: typeof rootRouteImport
++    }
++    '/_authenticated/master/': {
++      id: '/_authenticated/master/'
++      path: '/master'
++      fullPath: '/master/'
++      preLoaderRoute: typeof AuthenticatedMasterIndexRouteImport
++      parentRoute: typeof AuthenticatedRouteRoute
++    }
+   }
+ }
+ 
+@@ -212,6 +252,7 @@ interface AuthenticatedRouteRouteChildren {
+   AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
+   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
++  AuthenticatedMasterIndexRoute: typeof AuthenticatedMasterIndexRoute
+ }
+ 
+ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+@@ -220,6 +261,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+   AuthenticatedCrmRoute: AuthenticatedCrmRoute,
+   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
++  AuthenticatedMasterIndexRoute: AuthenticatedMasterIndexRoute,
+ }
+ 
+ const AuthenticatedRouteRouteWithChildren =
+@@ -230,6 +272,7 @@ const rootRouteChildren: RootRouteChildren = {
+   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+   AuthRoute: AuthRoute,
+   AgendarSlugRoute: AgendarSlugRoute,
++  MasterLoginRoute: MasterLoginRoute,
+ }
+ export const routeTree = rootRouteImport
+   ._addFileChildren(rootRouteChildren)
+diff --git a/src/routes/_authenticated/configuracoes.tsx b/src/routes/_authenticated/configuracoes.tsx
+index bc4fbfd..efc5af1 100644
+--- a/src/routes/_authenticated/configuracoes.tsx
++++ b/src/routes/_authenticated/configuracoes.tsx
+@@ -48,7 +48,6 @@ function ConfigPage() {
+       salvar({
+         data: {
+           nome,
+-          slug,
+           hora_inicio: horaInicio,
+           hora_fim: horaFim,
+           dias_semana: dias,
+@@ -88,13 +87,16 @@ function ConfigPage() {
+           />
+         </label>
+         <label className="grid gap-1">
+-          <span className="text-xs text-inksoft">Slug do link público</span>
++          <span className="text-xs text-inksoft">Link público</span>
+           <input
+             value={slug}
+-            onChange={(e) => setSlug(e.target.value.toLowerCase())}
+-            className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
++            disabled
++            readOnly
++            className="rounded-lg bg-cream/40 px-3 py-2 text-sm text-inksoft ring-1 ring-border outline-none"
+           />
+-          <span className="truncate text-xs text-inksoft">{link}</span>
++          <span className="truncate text-xs text-inksoft">
++            {link} · para alterar, fale com o administrador da plataforma
++          </span>
+         </label>
+         <div className="grid grid-cols-2 gap-3">
+           <label className="grid gap-1">
+diff --git a/src/routes/_authenticated/master.index.tsx b/src/routes/_authenticated/master.index.tsx
+new file mode 100644
+index 0000000..df4b39a
+--- /dev/null
++++ b/src/routes/_authenticated/master.index.tsx
+@@ -0,0 +1,653 @@
++import { createFileRoute, useNavigate } from "@tanstack/react-router";
++import { Building2, LogOut, Plus, ShieldCheck, Trash2, UserPlus } from "lucide-react";
++import { useState } from "react";
++import { toast } from "sonner";
++
++import { Button } from "@/components/ui/button";
++import {
++  Dialog,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogTitle,
++} from "@/components/ui/dialog";
++import { Input } from "@/components/ui/input";
++import { Label } from "@/components/ui/label";
++import {
++  Select,
++  SelectContent,
++  SelectItem,
++  SelectTrigger,
++  SelectValue,
++} from "@/components/ui/select";
++import { Switch } from "@/components/ui/switch";
++import { supabase } from "@/integrations/supabase/client";
++import {
++  TIPO_AGENDA_LABELS,
++  TIPO_AGENDA_VALUES,
++  slugify,
++  type TipoAgenda,
++} from "@/lib/empresas-utils";
++import {
++  useCriarAdminEmpresa,
++  useDefinirEmpresaAtiva,
++  useExcluirEmpresa,
++  useIsMaster,
++  useMasterEmpresas,
++  useSalvarEmpresa,
++} from "@/lib/master-data";
++
++import type { MasterEmpresa } from "@/lib/master.functions";
++
++export const Route = createFileRoute("/_authenticated/master/")({
++  head: () => ({
++    meta: [
++      { title: "Empresas da plataforma" },
++      { name: "description", content: "Gestão interna das empresas da plataforma." },
++      { name: "robots", content: "noindex, nofollow" },
++    ],
++  }),
++  component: MasterPage,
++});
++
++const DEFAULT_PRIMARY = "#b8451f";
++const DEFAULT_SECONDARY = "#1f6f5c";
++const DEFAULT_BACKGROUND = "#fdfaf6";
++const DEFAULT_TEXT = "#2a231e";
++
++function MasterPage() {
++  const navigate = useNavigate();
++  const { data: isMaster, isLoading } = useIsMaster();
++  const empresas = useMasterEmpresas();
++  const definirAtiva = useDefinirEmpresaAtiva();
++
++  const [empresaForm, setEmpresaForm] = useState<MasterEmpresa | "new" | null>(null);
++  const [adminFor, setAdminFor] = useState<MasterEmpresa | null>(null);
++  const [deleteFor, setDeleteFor] = useState<MasterEmpresa | null>(null);
++
++  if (isLoading) {
++    return (
++      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
++        Carregando...
++      </div>
++    );
++  }
++
++  if (!isMaster) {
++    return (
++      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-5 text-center">
++        <h1 className="text-2xl font-bold">Acesso restrito</h1>
++        <p className="text-sm text-muted-foreground">Esta conta não tem acesso a esta área.</p>
++        <Button
++          variant="outline"
++          className="h-12 rounded-full px-6"
++          onClick={async () => {
++            await supabase.auth.signOut();
++            void navigate({ to: "/master/login" });
++          }}
++        >
++          Sair
++        </Button>
++      </main>
++    );
++  }
++
++  return (
++    <div className="min-h-screen bg-background">
++      <header className="border-b border-border bg-card">
++        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-4">
++          <div className="flex min-w-0 items-center gap-3">
++            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
++              <ShieldCheck className="h-5 w-5" aria-hidden />
++            </span>
++            <div className="min-w-0">
++              <h1 className="truncate text-xl font-extrabold">Empresas</h1>
++              <p className="text-xs text-muted-foreground">Administração da plataforma</p>
++            </div>
++          </div>
++          <Button
++            variant="ghost"
++            className="h-11 shrink-0 rounded-full"
++            onClick={async () => {
++              await supabase.auth.signOut();
++              void navigate({ to: "/master/login" });
++            }}
++          >
++            <LogOut className="mr-1 h-4 w-4" aria-hidden />
++            Sair
++          </Button>
++        </div>
++      </header>
++
++      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-6">
++        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
++          <p className="text-sm text-muted-foreground">
++            {empresas.data?.length ?? 0} empresa(s) cadastrada(s)
++          </p>
++          <Button
++            className="h-12 w-full rounded-full px-5 sm:w-auto"
++            onClick={() => setEmpresaForm("new")}
++          >
++            <Plus className="mr-1 h-4 w-4" aria-hidden />
++            Nova empresa
++          </Button>
++        </div>
++
++        {empresas.isLoading ? (
++          <p className="text-sm text-muted-foreground">Carregando empresas...</p>
++        ) : empresas.isError ? (
++          <p className="text-sm text-destructive">Não foi possível carregar as empresas.</p>
++        ) : (empresas.data ?? []).length === 0 ? (
++          <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
++            <Building2 className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
++            <h2 className="mt-4 text-lg font-semibold">Nenhuma empresa ainda</h2>
++            <p className="mt-2 text-sm text-muted-foreground">
++              Cadastre a primeira empresa para liberar a agenda dela.
++            </p>
++          </div>
++        ) : (
++          <ul className="flex flex-col gap-3">
++            {(empresas.data ?? []).map((empresa) => (
++              <li
++                key={empresa.id}
++                className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center"
++              >
++                <div className="flex min-w-0 flex-1 items-start gap-4">
++                  {empresa.logoUrl ? (
++                    <img
++                      src={empresa.logoUrl}
++                      alt={`Logo ${empresa.nome}`}
++                      className="h-14 w-14 shrink-0 rounded-xl object-cover"
++                    />
++                  ) : (
++                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
++                      <Building2 className="h-5 w-5" aria-hidden />
++                    </span>
++                  )}
++
++                  <div className="min-w-0 flex-1">
++                    <p className="truncate font-semibold">{empresa.nome}</p>
++                    <p className="truncate text-xs text-muted-foreground">/{empresa.slug}</p>
++                    <div className="mt-2 flex flex-wrap items-center gap-2">
++                      <span className="inline-flex h-6 items-center rounded-full bg-primary/10 px-2.5 text-xs font-medium text-primary">
++                        {TIPO_AGENDA_LABELS[empresa.tipoAgenda as TipoAgenda] ?? empresa.tipoAgenda}
++                      </span>
++                      <span
++                        className="h-5 w-5 rounded-full border border-border"
++                        style={{ background: empresa.corPrimaria }}
++                        title={`Cor primária ${empresa.corPrimaria}`}
++                      />
++                      <span
++                        className="h-5 w-5 rounded-full border border-border"
++                        style={{ background: empresa.corSecundaria }}
++                        title={`Cor secundária ${empresa.corSecundaria}`}
++                      />
++                      <span className="text-xs break-words text-muted-foreground">
++                        {empresa.admins.length} admin(s)
++                        {empresa.admins.length > 0
++                          ? `: ${empresa.admins.map((admin) => admin.email).join(", ")}`
++                          : ""}
++                      </span>
++                    </div>
++                  </div>
++                </div>
++
++                <div className="flex flex-wrap items-center gap-2">
++                  <label className="flex min-h-11 items-center gap-2 text-sm">
++                    <Switch
++                      checked={empresa.ativa}
++                      onCheckedChange={(checked) =>
++                        definirAtiva.mutate(
++                          { id: empresa.id, ativa: checked },
++                          {
++                            onSuccess: () =>
++                              toast.success(checked ? "Empresa ativada" : "Empresa desativada"),
++                            onError: () => toast.error("Não foi possível alterar o status"),
++                          },
++                        )
++                      }
++                      aria-label={`Ativar ${empresa.nome}`}
++                    />
++                    {empresa.ativa ? "Ativa" : "Inativa"}
++                  </label>
++                  <Button
++                    variant="outline"
++                    className="h-11 rounded-full"
++                    onClick={() => setEmpresaForm(empresa)}
++                  >
++                    Editar
++                  </Button>
++                  <Button
++                    variant="outline"
++                    className="h-11 rounded-full"
++                    onClick={() => setAdminFor(empresa)}
++                  >
++                    <UserPlus className="mr-1 h-4 w-4" aria-hidden />
++                    Admin
++                  </Button>
++                  <Button
++                    variant="outline"
++                    className="h-11 rounded-full text-destructive hover:text-destructive"
++                    onClick={() => setDeleteFor(empresa)}
++                  >
++                    <Trash2 className="mr-1 h-4 w-4" aria-hidden />
++                    Remover
++                  </Button>
++                </div>
++              </li>
++            ))}
++          </ul>
++        )}
++      </main>
++
++      <EmpresaDialog empresa={empresaForm} onClose={() => setEmpresaForm(null)} />
++      <AdminDialog empresa={adminFor} onClose={() => setAdminFor(null)} />
++      <DeleteEmpresaDialog empresa={deleteFor} onClose={() => setDeleteFor(null)} />
++    </div>
++  );
++}
++
++function EmpresaDialog({
++  empresa,
++  onClose,
++}: {
++  empresa: MasterEmpresa | "new" | null;
++  onClose: () => void;
++}) {
++  const editando = empresa && empresa !== "new" ? empresa : null;
++  const salvar = useSalvarEmpresa();
++
++  const [nome, setNome] = useState("");
++  const [slug, setSlug] = useState("");
++  const [corPrimaria, setCorPrimaria] = useState(DEFAULT_PRIMARY);
++  const [corSecundaria, setCorSecundaria] = useState(DEFAULT_SECONDARY);
++  const [corFundo, setCorFundo] = useState("");
++  const [corTexto, setCorTexto] = useState("");
++  const [tipoAgenda, setTipoAgenda] = useState<TipoAgenda>("saude_bem_estar");
++  const [ativa, setAtiva] = useState(true);
++  const [logoFile, setLogoFile] = useState<File | null>(null);
++  const [key, setKey] = useState<string | null>(null);
++
++  const currentKey = empresa === "new" ? "new" : (editando?.id ?? null);
++  if (empresa && currentKey !== key) {
++    setKey(currentKey);
++    setNome(editando?.nome ?? "");
++    setSlug(editando?.slug ?? "");
++    setCorPrimaria(editando?.corPrimaria ?? DEFAULT_PRIMARY);
++    setCorSecundaria(editando?.corSecundaria ?? DEFAULT_SECONDARY);
++    setCorFundo(editando?.corFundo ?? "");
++    setCorTexto(editando?.corTexto ?? "");
++    setTipoAgenda((editando?.tipoAgenda as TipoAgenda) ?? "saude_bem_estar");
++    setAtiva(editando?.ativa ?? true);
++    setLogoFile(null);
++  }
++
++  return (
++    <Dialog open={Boolean(empresa)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
++      <DialogContent className="max-h-[90vh] overflow-y-auto">
++        <DialogHeader>
++          <DialogTitle>{editando ? "Editar empresa" : "Nova empresa"}</DialogTitle>
++          <DialogDescription>
++            A agenda pública fica em /agendar/{slug || "endereco-da-empresa"}.
++          </DialogDescription>
++        </DialogHeader>
++
++        <form
++          className="flex flex-col gap-4"
++          onSubmit={(event) => {
++            event.preventDefault();
++            salvar.mutate(
++              {
++                ...(editando ? { id: editando.id } : {}),
++                nome: nome.trim(),
++                slug: slugify(slug || nome),
++                corPrimaria,
++                corSecundaria,
++                corFundo,
++                corTexto,
++                tipoAgenda,
++                ativa,
++                logoFile,
++              },
++              {
++                onSuccess: () => {
++                  toast.success(editando ? "Empresa atualizada" : "Empresa criada");
++                  onClose();
++                },
++                onError: (error) =>
++                  toast.error(error instanceof Error ? error.message : "Falha ao salvar"),
++              },
++            );
++          }}
++        >
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="empresa-nome">Nome da empresa</Label>
++            <Input
++              id="empresa-nome"
++              required
++              className="h-12"
++              value={nome}
++              onChange={(event) => {
++                setNome(event.target.value);
++                if (!editando) setSlug(slugify(event.target.value));
++              }}
++            />
++          </div>
++
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="empresa-slug">Endereço da agenda</Label>
++            <Input
++              id="empresa-slug"
++              required
++              className="h-12"
++              value={slug}
++              onChange={(event) => setSlug(slugify(event.target.value))}
++            />
++          </div>
++
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="empresa-tipo">Tipo de agenda</Label>
++            <Select
++              value={tipoAgenda}
++              onValueChange={(value) => setTipoAgenda(value as TipoAgenda)}
++            >
++              <SelectTrigger id="empresa-tipo" className="h-12">
++                <SelectValue placeholder="Selecione o segmento" />
++              </SelectTrigger>
++              <SelectContent>
++                {TIPO_AGENDA_VALUES.map((valor) => (
++                  <SelectItem key={valor} value={valor}>
++                    {TIPO_AGENDA_LABELS[valor]}
++                  </SelectItem>
++                ))}
++              </SelectContent>
++            </Select>
++            <p className="text-xs text-muted-foreground">
++              Define o segmento do negócio — futuras regras da agenda vão depender disso.
++            </p>
++          </div>
++
++          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
++            <div className="flex flex-col gap-2">
++              <Label htmlFor="empresa-primaria">Cor primária</Label>
++              <Input
++                id="empresa-primaria"
++                type="color"
++                className="h-12 p-1"
++                value={corPrimaria}
++                onChange={(event) => setCorPrimaria(event.target.value)}
++              />
++            </div>
++            <div className="flex flex-col gap-2">
++              <Label htmlFor="empresa-secundaria">Cor secundária</Label>
++              <Input
++                id="empresa-secundaria"
++                type="color"
++                className="h-12 p-1"
++                value={corSecundaria}
++                onChange={(event) => setCorSecundaria(event.target.value)}
++              />
++            </div>
++          </div>
++
++          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-4">
++            <div className="flex items-center justify-between gap-4">
++              <div className="min-w-0">
++                <p className="text-sm font-semibold">Personalizar cor de fundo</p>
++                <p className="text-xs text-muted-foreground">
++                  Sem isso, usa o fundo padrão do sistema.
++                </p>
++              </div>
++              <Switch
++                checked={corFundo !== ""}
++                onCheckedChange={(checked) => setCorFundo(checked ? DEFAULT_BACKGROUND : "")}
++              />
++            </div>
++            {corFundo !== "" && (
++              <Input
++                type="color"
++                className="h-12 p-1"
++                value={corFundo}
++                onChange={(event) => setCorFundo(event.target.value)}
++              />
++            )}
++
++            <div className="flex items-center justify-between gap-4">
++              <div className="min-w-0">
++                <p className="text-sm font-semibold">Personalizar cor de letra</p>
++                <p className="text-xs text-muted-foreground">
++                  Sem isso, usa a cor de texto padrão do sistema.
++                </p>
++              </div>
++              <Switch
++                checked={corTexto !== ""}
++                onCheckedChange={(checked) => setCorTexto(checked ? DEFAULT_TEXT : "")}
++              />
++            </div>
++            {corTexto !== "" && (
++              <Input
++                type="color"
++                className="h-12 p-1"
++                value={corTexto}
++                onChange={(event) => setCorTexto(event.target.value)}
++              />
++            )}
++          </div>
++
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="empresa-logo">Logo (PNG ou JPG, até 2 MB)</Label>
++            <Input
++              id="empresa-logo"
++              type="file"
++              accept="image/png,image/jpeg,image/webp"
++              className="h-12"
++              onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
++            />
++            {editando?.logoUrl && !logoFile ? (
++              <p className="text-xs text-muted-foreground">
++                A logo atual é mantida se nenhum arquivo for escolhido.
++              </p>
++            ) : null}
++          </div>
++
++          <label className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
++            <span className="text-sm font-medium">Empresa ativa</span>
++            <Switch checked={ativa} onCheckedChange={setAtiva} />
++          </label>
++
++          <DialogFooter>
++            <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
++              Cancelar
++            </Button>
++            <Button type="submit" className="h-12 rounded-full px-6" disabled={salvar.isPending}>
++              {salvar.isPending ? "Salvando..." : "Salvar"}
++            </Button>
++          </DialogFooter>
++        </form>
++      </DialogContent>
++    </Dialog>
++  );
++}
++
++function AdminDialog({ empresa, onClose }: { empresa: MasterEmpresa | null; onClose: () => void }) {
++  const criar = useCriarAdminEmpresa();
++  const [fullName, setFullName] = useState("");
++  const [email, setEmail] = useState("");
++  const [password, setPassword] = useState("");
++
++  return (
++    <Dialog
++      open={Boolean(empresa)}
++      onOpenChange={(open) => {
++        if (!open) {
++          setFullName("");
++          setEmail("");
++          setPassword("");
++          onClose();
++        }
++      }}
++    >
++      <DialogContent>
++        <DialogHeader>
++          <DialogTitle>Novo administrador</DialogTitle>
++          <DialogDescription>
++            A conta terá acesso apenas aos dados de {empresa?.nome ?? "empresa"}.
++          </DialogDescription>
++        </DialogHeader>
++
++        <form
++          className="flex flex-col gap-4"
++          onSubmit={(event) => {
++            event.preventDefault();
++            if (!empresa) return;
++            criar.mutate(
++              {
++                empresaId: empresa.id,
++                fullName: fullName.trim(),
++                email: email.trim(),
++                password,
++              },
++              {
++                onSuccess: () => {
++                  toast.success("Administrador criado");
++                  setFullName("");
++                  setEmail("");
++                  setPassword("");
++                  onClose();
++                },
++                onError: (error) =>
++                  toast.error(error instanceof Error ? error.message : "Falha ao criar a conta"),
++              },
++            );
++          }}
++        >
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="admin-name">Nome</Label>
++            <Input
++              id="admin-name"
++              required
++              className="h-12"
++              value={fullName}
++              onChange={(event) => setFullName(event.target.value)}
++            />
++          </div>
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="admin-email">E-mail</Label>
++            <Input
++              id="admin-email"
++              type="email"
++              required
++              className="h-12"
++              value={email}
++              onChange={(event) => setEmail(event.target.value)}
++            />
++          </div>
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="admin-password">Senha provisória (mínimo 8 caracteres)</Label>
++            <Input
++              id="admin-password"
++              type="text"
++              required
++              minLength={8}
++              className="h-12"
++              value={password}
++              onChange={(event) => setPassword(event.target.value)}
++            />
++          </div>
++
++          <DialogFooter>
++            <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
++              Cancelar
++            </Button>
++            <Button type="submit" className="h-12 rounded-full px-6" disabled={criar.isPending}>
++              {criar.isPending ? "Criando..." : "Criar acesso"}
++            </Button>
++          </DialogFooter>
++        </form>
++      </DialogContent>
++    </Dialog>
++  );
++}
++
++function DeleteEmpresaDialog({
++  empresa,
++  onClose,
++}: {
++  empresa: MasterEmpresa | null;
++  onClose: () => void;
++}) {
++  const remover = useExcluirEmpresa();
++  const [confirm, setConfirm] = useState("");
++
++  return (
++    <Dialog
++      open={Boolean(empresa)}
++      onOpenChange={(open) => {
++        if (!open) {
++          setConfirm("");
++          onClose();
++        }
++      }}
++    >
++      <DialogContent>
++        <DialogHeader>
++          <DialogTitle>Remover empresa</DialogTitle>
++          <DialogDescription>
++            Esta ação apaga definitivamente serviços, clientes, agendamentos e as contas de
++            administrador de {empresa?.nome ?? "empresa"}. Para apenas esconder a agenda, use a
++            chave "Ativa".
++          </DialogDescription>
++        </DialogHeader>
++
++        <form
++          className="flex flex-col gap-4"
++          onSubmit={(event) => {
++            event.preventDefault();
++            if (!empresa) return;
++            remover.mutate(
++              { id: empresa.id, confirmSlug: confirm.trim() },
++              {
++                onSuccess: () => {
++                  toast.success("Empresa removida");
++                  setConfirm("");
++                  onClose();
++                },
++                onError: (error) =>
++                  toast.error(error instanceof Error ? error.message : "Falha ao remover"),
++              },
++            );
++          }}
++        >
++          <div className="flex flex-col gap-2">
++            <Label htmlFor="delete-confirm">
++              Digite <span className="font-semibold">{empresa?.slug}</span> para confirmar
++            </Label>
++            <Input
++              id="delete-confirm"
++              required
++              autoComplete="off"
++              className="h-12"
++              value={confirm}
++              onChange={(event) => setConfirm(event.target.value)}
++            />
++          </div>
++
++          <DialogFooter>
++            <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
++              Cancelar
++            </Button>
++            <Button
++              type="submit"
++              variant="destructive"
++              className="h-12 rounded-full px-6"
++              disabled={remover.isPending || confirm.trim() !== empresa?.slug}
++            >
++              {remover.isPending ? "Removendo..." : "Remover definitivamente"}
++            </Button>
++          </DialogFooter>
++        </form>
++      </DialogContent>
++    </Dialog>
++  );
++}
+diff --git a/src/routes/auth.tsx b/src/routes/auth.tsx
+index 4a700b1..07fb75d 100644
+--- a/src/routes/auth.tsx
++++ b/src/routes/auth.tsx
+@@ -26,7 +26,6 @@ const schema = z.object({
+ 
+ function AuthPage() {
+   const navigate = useNavigate();
+-  const [modo, setModo] = useState<"entrar" | "criar">("entrar");
+   const [email, setEmail] = useState("");
+   const [senha, setSenha] = useState("");
+   const [carregando, setCarregando] = useState(false);
+@@ -37,6 +36,8 @@ function AuthPage() {
+     });
+   }, [navigate]);
+ 
++  // O cadastro de empresa/admin agora é feito pelo Admin Master (não há mais
++  // autocadastro público — era a origem do bug "primeiro usuário vira admin global").
+   async function enviar(e: React.FormEvent) {
+     e.preventDefault();
+     const parsed = schema.safeParse({ email, senha });
+@@ -46,24 +47,13 @@ function AuthPage() {
+     }
+     setCarregando(true);
+     try {
+-      if (modo === "criar") {
+-        const { error } = await supabase.auth.signUp({
+-          email: parsed.data.email,
+-          password: parsed.data.senha,
+-          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+-        });
+-        if (error) throw error;
+-        toast.success("Conta criada! Entrando…");
+-      } else {
+-        const { error } = await supabase.auth.signInWithPassword({
+-          email: parsed.data.email,
+-          password: parsed.data.senha,
+-        });
+-        if (error) throw error;
+-      }
++      const { error } = await supabase.auth.signInWithPassword({
++        email: parsed.data.email,
++        password: parsed.data.senha,
++      });
++      if (error) throw error;
+       const { data } = await supabase.auth.getSession();
+       if (data.session) navigate({ to: "/dashboard" });
+-      else toast.info("Confirme seu e-mail para entrar.");
+     } catch (err) {
+       toast.error(err instanceof Error ? err.message : "Não foi possível continuar");
+     } finally {
+@@ -78,9 +68,7 @@ function AuthPage() {
+           <Link to="/" className="text-xs font-medium tracking-[0.14em] text-branddeep uppercase">
+             Cronica
+           </Link>
+-          <h1 className="mt-1 text-2xl text-balance font-display">
+-            {modo === "entrar" ? "Entre no seu painel." : "Crie a conta do seu negócio."}
+-          </h1>
++          <h1 className="mt-1 text-2xl text-balance font-display">Entre no seu painel.</h1>
+         </div>
+         <form className="grid gap-3 p-5" onSubmit={enviar}>
+           <label className="grid gap-1 text-sm">
+@@ -100,7 +88,7 @@ function AuthPage() {
+               type="password"
+               value={senha}
+               onChange={(e) => setSenha(e.target.value)}
+-              autoComplete={modo === "criar" ? "new-password" : "current-password"}
++              autoComplete="current-password"
+               required
+               className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
+             />
+@@ -110,15 +98,11 @@ function AuthPage() {
+             disabled={carregando}
+             className="mt-1 rounded-lg bg-brand py-2 text-sm font-medium text-cream shadow-slot ring-1 ring-brand disabled:opacity-60"
+           >
+-            {carregando ? "Aguarde…" : modo === "entrar" ? "Entrar" : "Criar conta"}
+-          </button>
+-          <button
+-            type="button"
+-            onClick={() => setModo(modo === "entrar" ? "criar" : "entrar")}
+-            className="text-xs text-inksoft hover:text-ink"
+-          >
+-            {modo === "entrar" ? "Ainda não tem conta? Criar agora" : "Já tenho conta. Entrar"}
++            {carregando ? "Aguarde…" : "Entrar"}
+           </button>
++          <p className="text-xs text-inksoft">
++            Não tem acesso? Peça ao administrador da plataforma para criar sua conta.
++          </p>
+         </form>
+       </div>
+     </div>
+diff --git a/src/routes/master.login.tsx b/src/routes/master.login.tsx
+new file mode 100644
+index 0000000..295694f
+--- /dev/null
++++ b/src/routes/master.login.tsx
+@@ -0,0 +1,90 @@
++import { createFileRoute, useNavigate } from "@tanstack/react-router";
++import { ShieldCheck } from "lucide-react";
++import { useState } from "react";
++import { toast } from "sonner";
++
++import { supabase } from "@/integrations/supabase/client";
++
++export const Route = createFileRoute("/master/login")({
++  head: () => ({
++    meta: [
++      { title: "Acesso da plataforma" },
++      { name: "description", content: "Área interna da plataforma." },
++      { name: "robots", content: "noindex, nofollow" },
++    ],
++  }),
++  component: MasterLogin,
++});
++
++function MasterLogin() {
++  const navigate = useNavigate();
++  const [email, setEmail] = useState("");
++  const [senha, setSenha] = useState("");
++  const [carregando, setCarregando] = useState(false);
++
++  async function enviar(event: React.FormEvent) {
++    event.preventDefault();
++    setCarregando(true);
++    try {
++      const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
++      if (error) throw error;
++
++      const { data: isMaster } = await supabase.rpc("is_master", { _user_id: data.user!.id });
++      if (!isMaster) {
++        await supabase.auth.signOut();
++        throw new Error("Acesso restrito.");
++      }
++
++      void navigate({ to: "/master" });
++    } catch (error) {
++      toast.error(error instanceof Error ? error.message : "Não foi possível entrar.");
++    } finally {
++      setCarregando(false);
++    }
++  }
++
++  return (
++    <div className="board-bg flex min-h-screen items-center justify-center bg-cream px-4 py-10 text-ink">
++      <div className="w-full max-w-sm overflow-hidden rounded-xl bg-paper shadow-board ring-1 ring-border">
++        <div className="border-b border-border bg-gradient-to-b from-gold/25 to-transparent p-5">
++          <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand text-cream">
++            <ShieldCheck className="h-5 w-5" aria-hidden />
++          </span>
++          <h1 className="mt-3 text-xl font-display">Acesso da plataforma</h1>
++          <p className="mt-1 text-xs text-inksoft">Área interna restrita ao admin master.</p>
++        </div>
++        <form className="grid gap-3 p-5" onSubmit={enviar}>
++          <label className="grid gap-1 text-sm">
++            <span className="text-xs text-inksoft">E-mail</span>
++            <input
++              type="email"
++              value={email}
++              onChange={(e) => setEmail(e.target.value)}
++              autoComplete="email"
++              required
++              className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
++            />
++          </label>
++          <label className="grid gap-1 text-sm">
++            <span className="text-xs text-inksoft">Senha</span>
++            <input
++              type="password"
++              value={senha}
++              onChange={(e) => setSenha(e.target.value)}
++              autoComplete="current-password"
++              required
++              className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
++            />
++          </label>
++          <button
++            type="submit"
++            disabled={carregando}
++            className="mt-1 rounded-lg bg-brand py-2 text-sm font-medium text-cream shadow-slot ring-1 ring-brand disabled:opacity-60"
++          >
++            {carregando ? "Aguarde…" : "Entrar"}
++          </button>
++        </form>
++      </div>
++    </div>
++  );
++}
+diff --git a/supabase/migrations/20260908180000_admin_master_multiempresa.sql b/supabase/migrations/20260908180000_admin_master_multiempresa.sql
+new file mode 100644
+index 0000000..476b9de
+--- /dev/null
++++ b/supabase/migrations/20260908180000_admin_master_multiempresa.sql
+@@ -0,0 +1,175 @@
++-- =========================================================================
++-- Admin master + multi-empresa (padrão validado no Inov4 Vitrine Digital)
++-- + substituição de "controle de estoque" por "tipo_agenda"
++-- =========================================================================
++
++-- 1. Papéis (admin / master)
++CREATE TYPE public.app_role AS ENUM ('admin', 'master');
++
++CREATE TABLE public.user_roles (
++  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
++  user_id uuid NOT NULL,
++  role public.app_role NOT NULL,
++  created_at timestamptz NOT NULL DEFAULT now(),
++  UNIQUE (user_id, role)
++);
++GRANT SELECT ON public.user_roles TO authenticated;
++GRANT ALL ON public.user_roles TO service_role;
++ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY "users read own roles" ON public.user_roles
++  FOR SELECT TO authenticated USING (user_id = auth.uid());
++
++CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
++RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
++  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role);
++$$;
++
++CREATE OR REPLACE FUNCTION public.is_master(_user_id uuid)
++RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
++  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = 'master');
++$$;
++
++-- Restringe quem pode executar (RPC pública só do necessário)
++REVOKE EXECUTE ON FUNCTION public.is_master(uuid) FROM PUBLIC, anon;
++GRANT EXECUTE ON FUNCTION public.is_master(uuid) TO authenticated, service_role;
++REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC, anon;
++GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, service_role;
++
++-- 2. Vínculo admin -> empresa (1 empresa por admin, igual ao Vitrine)
++CREATE TABLE public.empresa_admins (
++  user_id uuid PRIMARY KEY,
++  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE RESTRICT,
++  full_name text NOT NULL DEFAULT '',
++  created_at timestamptz NOT NULL DEFAULT now()
++);
++GRANT SELECT ON public.empresa_admins TO authenticated;
++GRANT ALL ON public.empresa_admins TO service_role;
++ALTER TABLE public.empresa_admins ENABLE ROW LEVEL SECURITY;
++
++CREATE POLICY "admin le proprio vinculo" ON public.empresa_admins FOR SELECT TO authenticated
++  USING (user_id = auth.uid() OR public.is_master(auth.uid()));
++
++CREATE OR REPLACE FUNCTION public.empresa_do_admin(_user_id uuid)
++RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
++  SELECT empresa_id FROM public.empresa_admins WHERE user_id = _user_id;
++$$;
++
++CREATE OR REPLACE FUNCTION public.empresa_ativa(_empresa_id uuid)
++RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
++  SELECT EXISTS (SELECT 1 FROM public.empresas WHERE id = _empresa_id AND ativa);
++$$;
++
++REVOKE EXECUTE ON FUNCTION public.empresa_do_admin(uuid) FROM PUBLIC, anon;
++GRANT EXECUTE ON FUNCTION public.empresa_do_admin(uuid) TO authenticated, service_role;
++REVOKE EXECUTE ON FUNCTION public.empresa_ativa(uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION public.empresa_ativa(uuid) TO anon, authenticated, service_role;
++
++-- 3. tipo_agenda (substitui o conceito de "controle de estoque" do Vitrine)
++CREATE TYPE public.tipo_agenda AS ENUM (
++  'saude_bem_estar',
++  'beleza_estetica',
++  'servicos_profissionais_consultoria',
++  'educacao_treinamentos',
++  'esporte_fitness_lazer',
++  'automotivo_servicos_gerais',
++  'eventos_gastronomia_entretenimento',
++  'servicos_publicos_governamentais',
++  'corporativo_rh',
++  'pet_shop_veterinaria'
++);
++
++-- 4. Campos novos em empresas (branding + status + tipo_agenda)
++ALTER TABLE public.empresas
++  ADD COLUMN logo_url text,
++  ADD COLUMN cor_primaria text NOT NULL DEFAULT '#b8451f',
++  ADD COLUMN cor_secundaria text NOT NULL DEFAULT '#1f6f5c',
++  ADD COLUMN cor_fundo text NOT NULL DEFAULT '',
++  ADD COLUMN cor_texto text NOT NULL DEFAULT '',
++  ADD COLUMN ativa boolean NOT NULL DEFAULT true,
++  ADD COLUMN tipo_agenda public.tipo_agenda;
++
++-- Dado de seed existente (Açaí Pet) precisa de um valor antes do NOT NULL
++UPDATE public.empresas SET tipo_agenda = 'pet_shop_veterinaria' WHERE tipo_agenda IS NULL;
++ALTER TABLE public.empresas ALTER COLUMN tipo_agenda SET NOT NULL;
++
++-- 5. Migra admins existentes (owner_id) para o novo modelo antes de remover a coluna.
++--    Quem já era dono de empresa vira também master da plataforma (bootstrap seguro,
++--    evita perda de acesso; masters adicionais devem ser geridos manualmente depois).
++INSERT INTO public.empresa_admins (user_id, empresa_id, full_name)
++SELECT owner_id, id, '' FROM public.empresas WHERE owner_id IS NOT NULL
++ON CONFLICT (user_id) DO NOTHING;
++
++INSERT INTO public.user_roles (user_id, role)
++SELECT owner_id, 'admin' FROM public.empresas WHERE owner_id IS NOT NULL
++ON CONFLICT (user_id, role) DO NOTHING;
++
++INSERT INTO public.user_roles (user_id, role)
++SELECT owner_id, 'master' FROM public.empresas WHERE owner_id IS NOT NULL
++ON CONFLICT (user_id, role) DO NOTHING;
++
++-- 6. Fim do autocadastro de empresa/admin (era o bug documentado: "primeiro usuário vira admin")
++DROP FUNCTION IF EXISTS public.provisionar_empresa();
++
++-- 7. Remove owner_id e reescreve eh_dono / RLS de empresas
++ALTER TABLE public.empresas DROP COLUMN owner_id;
++
++DROP POLICY "empresas leitura publica" ON public.empresas;
++DROP POLICY "dono insere empresa" ON public.empresas;
++DROP POLICY "dono atualiza empresa" ON public.empresas;
++DROP POLICY "dono remove empresa" ON public.empresas;
++
++CREATE POLICY "leitura empresas ativas ou proprias" ON public.empresas FOR SELECT TO anon, authenticated
++  USING (ativa OR public.is_master(auth.uid()) OR id = public.empresa_do_admin(auth.uid()));
++CREATE POLICY "master insere empresa" ON public.empresas FOR INSERT TO authenticated
++  WITH CHECK (public.is_master(auth.uid()));
++CREATE POLICY "master atualiza empresa" ON public.empresas FOR UPDATE TO authenticated
++  USING (public.is_master(auth.uid())) WITH CHECK (public.is_master(auth.uid()));
++CREATE POLICY "admin atualiza dados operacionais" ON public.empresas FOR UPDATE TO authenticated
++  USING (id = public.empresa_do_admin(auth.uid())) WITH CHECK (id = public.empresa_do_admin(auth.uid()));
++CREATE POLICY "master remove empresa" ON public.empresas FOR DELETE TO authenticated
++  USING (public.is_master(auth.uid()));
++
++-- Guarda de coluna: admin de empresa (não-master) não pode alterar branding/tipo_agenda/
++-- status/slug por essa via — só o master, através da tela dele. Necessário porque RLS
++-- do Postgres não restringe colunas, só linhas; sem isso a policy operacional acima
++-- deixaria qualquer admin mudar até o tipo_agenda, e você citou que regras futuras vão
++-- depender desse campo.
++CREATE OR REPLACE FUNCTION public.protege_campos_master_empresa()
++RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++BEGIN
++  IF NOT public.is_master(auth.uid()) THEN
++    NEW.slug := OLD.slug;
++    NEW.logo_url := OLD.logo_url;
++    NEW.cor_primaria := OLD.cor_primaria;
++    NEW.cor_secundaria := OLD.cor_secundaria;
++    NEW.cor_fundo := OLD.cor_fundo;
++    NEW.cor_texto := OLD.cor_texto;
++    NEW.ativa := OLD.ativa;
++    NEW.tipo_agenda := OLD.tipo_agenda;
++  END IF;
++  RETURN NEW;
++END;
++$$;
++
++CREATE TRIGGER empresas_protege_campos_master
++  BEFORE UPDATE ON public.empresas
++  FOR EACH ROW EXECUTE FUNCTION public.protege_campos_master_empresa();
++
++CREATE OR REPLACE FUNCTION public.eh_dono(_empresa uuid)
++RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
++  SELECT _empresa = public.empresa_do_admin(auth.uid()) OR public.is_master(auth.uid());
++$$;
++-- eh_dono é mantida (agora cobrindo master também) para não quebrar as policies
++-- de servicos/clientes/agendamentos, que já referenciam essa função.
++
++-- 8. Isolamento de storage por empresa (logo), mesmo padrão do Vitrine
++INSERT INTO storage.buckets (id, name, public)
++VALUES ('empresa-logos', 'empresa-logos', true)
++ON CONFLICT (id) DO NOTHING;
++
++CREATE POLICY "master gerencia logos" ON storage.objects FOR ALL TO authenticated
++  USING (bucket_id = 'empresa-logos' AND public.is_master(auth.uid()))
++  WITH CHECK (bucket_id = 'empresa-logos' AND public.is_master(auth.uid()));
++CREATE POLICY "leitura publica logos" ON storage.objects FOR SELECT TO anon, authenticated
++  USING (bucket_id = 'empresa-logos');
+diff --git a/supabase/seed-master.sql b/supabase/seed-master.sql
+new file mode 100644
+index 0000000..f3aaffd
+--- /dev/null
++++ b/supabase/seed-master.sql
+@@ -0,0 +1,18 @@
++-- Execute manualmente (SQL editor do Supabase) DEPOIS de aplicar a migração
++-- 20260908180000_admin_master_multiempresa.sql e depois que este e-mail já
++-- tiver feito login pelo menos uma vez (precisa existir em auth.users).
++--
++-- Promove ands10.97@gmail.com a admin master da plataforma.
++-- Não é uma migração (não roda em CI/deploy automático) porque depende de
++-- dado específico do ambiente (o usuário já autenticado no Supabase Auth).
++
++INSERT INTO public.user_roles (user_id, role)
++SELECT id, 'master'
++FROM auth.users
++WHERE email = 'ands10.97@gmail.com'
++ON CONFLICT (user_id, role) DO NOTHING;
++
++-- Conferir:
++-- SELECT u.email, r.role FROM auth.users u
++-- JOIN public.user_roles r ON r.user_id = u.id
++-- WHERE u.email = 'ands10.97@gmail.com';

@@ -48,7 +48,6 @@ function ConfigPage() {
       salvar({
         data: {
           nome,
-          slug,
           hora_inicio: horaInicio,
           hora_fim: horaFim,
           dias_semana: dias,
@@ -88,13 +87,16 @@ function ConfigPage() {
           />
         </label>
         <label className="grid gap-1">
-          <span className="text-xs text-inksoft">Slug do link público</span>
+          <span className="text-xs text-inksoft">Link público</span>
           <input
             value={slug}
-            onChange={(e) => setSlug(e.target.value.toLowerCase())}
-            className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
+            disabled
+            readOnly
+            className="rounded-lg bg-cream/40 px-3 py-2 text-sm text-inksoft ring-1 ring-border outline-none"
           />
-          <span className="truncate text-xs text-inksoft">{link}</span>
+          <span className="truncate text-xs text-inksoft">
+            {link} · para alterar, fale com o administrador da plataforma
+          </span>
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="grid gap-1">

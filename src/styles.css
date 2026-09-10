@@ -121,6 +121,36 @@
   --shadow-slot: 0 12px 24px -14px oklch(0.579 0.139 50 / 80%);
 }
 
+/*
+ * Tema das telas internas de acesso (/auth e /master/login) — cópia exata da
+ * paleta e tipografia do Inov4 Vitrine Digital, por pedido do produto: essas
+ * telas não usam o tema "Golden Board" da agenda pública, ficam padronizadas
+ * com as demais telas internas da plataforma.
+ */
+.tema-vitrine {
+  --radius: 0.875rem;
+  --background: oklch(0.985 0.008 85);
+  --foreground: oklch(0.24 0.02 55);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.02 55);
+  --primary: oklch(0.56 0.16 38);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.945 0.014 80);
+  --secondary-foreground: oklch(0.3 0.025 55);
+  --muted: oklch(0.955 0.012 82);
+  --muted-foreground: oklch(0.52 0.02 62);
+  --accent: oklch(0.93 0.03 80);
+  --accent-foreground: oklch(0.3 0.03 50);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0.005 85);
+  --border: oklch(0.9 0.014 80);
+  --input: oklch(0.9 0.014 80);
+  --ring: oklch(0.56 0.16 38);
+  --font-sans-family: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display-family: "Bricolage Grotesque", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans-family);
+}
+
 .dark {
   --background: oklch(0.21 0.012 55);
   --foreground: var(--cream);

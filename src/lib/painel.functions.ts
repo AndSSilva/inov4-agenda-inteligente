@@ -46,24 +46,26 @@ export type ClienteItem = {
 
 type Ctx = { supabase: any; userId: string };
 
+/**
+ * Empresa do administrador logado. O vínculo é definido pelo Admin Master
+ * (tabela empresa_admins) — não existe mais autocadastro no primeiro login.
+ */
 async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
-  const { data: existente } = await context.supabase
-    .from("empresas")
-    .select("id, nome, slug, hora_inicio, hora_fim, dias_semana")
-    .eq("owner_id", context.userId)
+  const { data: vinculo, error: erroVinculo } = await context.supabase
+    .from("empresa_admins")
+    .select("empresa_id")
+    .eq("user_id", context.userId)
     .maybeSingle();
-  if (existente) return existente as Empresa;
+  if (erroVinculo) throw new Error(erroVinculo.message);
+  if (!vinculo) throw new Error("Sua conta não está vinculada a nenhuma empresa.");
 
-  const { error } = await context.supabase.rpc("provisionar_empresa");
-  if (error) throw new Error(error.message);
-
-  const { data: criada, error: erroBusca } = await context.supabase
+  const { data: empresa, error } = await context.supabase
     .from("empresas")
     .select("id, nome, slug, hora_inicio, hora_fim, dias_semana")
-    .eq("owner_id", context.userId)
+    .eq("id", vinculo.empresa_id)
     .single();
-  if (erroBusca) throw new Error(erroBusca.message);
-  return criada as Empresa;
+  if (error) throw new Error(error.message);
+  return empresa as Empresa;
 }
 
 const SELECT_AGENDAMENTO =
@@ -283,18 +285,15 @@ export const listClientes = createServerFn({ method: "GET" })
     return { empresa, clientes: lista };
   });
 
+// O slug NÃO é editável por aqui: é a rota pública (/agendar/$slug) e fica sob
+// controle exclusivo do Admin Master (evita a empresa quebrar o próprio link
+// publicado ou colidir com outra). Ver src/lib/master.functions.ts.
 export const salvarEmpresa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
       .object({
         nome: z.string().trim().min(2).max(80),
-        slug: z
-          .string()
-          .trim()
-          .min(3)
-          .max(60)
-          .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífens"),
         hora_inicio: z.string().regex(/^\d{2}:\d{2}$/),
         hora_fim: z.string().regex(/^\d{2}:\d{2}$/),
         dias_semana: z.array(z.number().int().min(0).max(6)).min(1),
