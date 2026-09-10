@@ -110,36 +110,83 @@ export type Database = {
           },
         ]
       }
+      empresa_admins: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          full_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          full_name?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          full_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_admins_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
+          ativa: boolean
+          cor_fundo: string
+          cor_primaria: string
+          cor_secundaria: string
+          cor_texto: string
           created_at: string
           dias_semana: number[]
           hora_fim: string
           hora_inicio: string
           id: string
+          logo_url: string | null
           nome: string
-          owner_id: string | null
           slug: string
+          tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
         }
         Insert: {
+          ativa?: boolean
+          cor_fundo?: string
+          cor_primaria?: string
+          cor_secundaria?: string
+          cor_texto?: string
           created_at?: string
           dias_semana?: number[]
           hora_fim?: string
           hora_inicio?: string
           id?: string
+          logo_url?: string | null
           nome: string
-          owner_id?: string | null
           slug: string
+          tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
         }
         Update: {
+          ativa?: boolean
+          cor_fundo?: string
+          cor_primaria?: string
+          cor_secundaria?: string
+          cor_texto?: string
           created_at?: string
           dias_semana?: number[]
           hora_fim?: string
           hora_inicio?: string
           id?: string
+          logo_url?: string | null
           nome?: string
-          owner_id?: string | null
           slug?: string
+          tipo_agenda?: Database["public"]["Enums"]["tipo_agenda"]
         }
         Relationships: []
       }
@@ -184,6 +231,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -202,6 +270,15 @@ export type Database = {
         Returns: string
       }
       eh_dono: { Args: { _empresa: string }; Returns: boolean }
+      empresa_ativa: { Args: { _empresa_id: string }; Returns: boolean }
+      empresa_do_admin: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       horarios_ocupados: {
         Args: { p_data: string; p_empresa: string }
         Returns: {
@@ -209,10 +286,22 @@ export type Database = {
           inicio: string
         }[]
       }
-      provisionar_empresa: { Args: never; Returns: string }
+      is_master: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "master"
       status_agendamento: "pendente" | "confirmado" | "cancelado" | "concluido"
+      tipo_agenda:
+        | "saude_bem_estar"
+        | "beleza_estetica"
+        | "servicos_profissionais_consultoria"
+        | "educacao_treinamentos"
+        | "esporte_fitness_lazer"
+        | "automotivo_servicos_gerais"
+        | "eventos_gastronomia_entretenimento"
+        | "servicos_publicos_governamentais"
+        | "corporativo_rh"
+        | "pet_shop_veterinaria"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -340,7 +429,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "master"],
       status_agendamento: ["pendente", "confirmado", "cancelado", "concluido"],
+      tipo_agenda: [
+        "saude_bem_estar",
+        "beleza_estetica",
+        "servicos_profissionais_consultoria",
+        "educacao_treinamentos",
+        "esporte_fitness_lazer",
+        "automotivo_servicos_gerais",
+        "eventos_gastronomia_entretenimento",
+        "servicos_publicos_governamentais",
+        "corporativo_rh",
+        "pet_shop_veterinaria",
+      ],
     },
   },
 } as const
