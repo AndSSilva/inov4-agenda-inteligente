@@ -64,7 +64,7 @@ function ConfigPage() {
   });
 
   const link =
-    typeof window === "undefined" ? "" : `${window.location.origin}/agendar/${data?.slug ?? ""}`;
+    typeof window === "undefined" ? "" : `${window.location.origin}/${data?.slug ?? ""}`;
 
   return (
     <AdminShell title="Configurações">

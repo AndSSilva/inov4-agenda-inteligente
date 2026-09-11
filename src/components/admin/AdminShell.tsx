@@ -79,12 +79,12 @@ export function AdminShell({ title, children }: { title: string; children: React
               className="h-11 w-11 rounded-full sm:hidden"
               aria-label="Ver agenda pública"
             >
-              <Link to="/agendar/$slug" params={{ slug: empresa.slug }} target="_blank">
+              <Link to="/$slug" params={{ slug: empresa.slug }} target="_blank">
                 <ExternalLink className="h-5 w-5" aria-hidden />
               </Link>
             </Button>
             <Button asChild variant="ghost" className="hidden h-11 rounded-full sm:inline-flex">
-              <Link to="/agendar/$slug" params={{ slug: empresa.slug }} target="_blank">
+              <Link to="/$slug" params={{ slug: empresa.slug }} target="_blank">
                 <ExternalLink className="mr-1 h-4 w-4" aria-hidden />
                 Ver agenda pública
               </Link>

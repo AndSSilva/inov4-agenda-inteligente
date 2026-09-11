@@ -303,7 +303,7 @@ function EmpresaDialog({
         <DialogHeader>
           <DialogTitle>{editando ? "Editar empresa" : "Nova empresa"}</DialogTitle>
           <DialogDescription>
-            A agenda pública fica em /agendar/{slug || "endereco-da-empresa"}.
+            A agenda pública fica em /{slug || "endereco-da-empresa"}.
           </DialogDescription>
         </DialogHeader>
 

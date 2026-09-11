@@ -11,7 +11,7 @@ import {
 } from "@/lib/publico.functions";
 import { NOMES_DIAS, dataLocal, moeda, somaDias } from "@/lib/tempo";
 
-export const Route = createFileRoute("/agendar/$slug")({
+export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
     const empresa = await getEmpresaPublica({ data: { slug: params.slug } });
     if (!empresa) throw notFound();

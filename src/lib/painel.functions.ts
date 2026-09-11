@@ -395,7 +395,7 @@ export const listClientes = createServerFn({ method: "GET" })
     return { empresa, clientes: lista };
   });
 
-// O slug NÃO é editável por aqui: é a rota pública (/agendar/$slug) e fica sob
+// O slug NÃO é editável por aqui: é a rota pública (/$slug) e fica sob
 // controle exclusivo do Admin Master (evita a empresa quebrar o próprio link
 // publicado ou colidir com outra). Ver src/lib/master.functions.ts.
 export const salvarEmpresa = createServerFn({ method: "POST" })
