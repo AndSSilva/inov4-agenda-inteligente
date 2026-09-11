@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { getEmpresa, salvarEmpresa } from "@/lib/painel.functions";
 import { NOMES_DIAS } from "@/lib/tempo";
 
-export const Route = createFileRoute("/_authenticated/configuracoes")({
+export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({
     meta: [
       { title: "Configurações · Cronica" },

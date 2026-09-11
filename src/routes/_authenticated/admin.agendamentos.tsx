@@ -34,7 +34,7 @@ import {
   mensagemRemarcacao,
 } from "@/lib/whatsapp";
 
-export const Route = createFileRoute("/_authenticated/agenda")({
+export const Route = createFileRoute("/_authenticated/admin/agendamentos")({
   head: () => ({
     meta: [
       { title: "Agendamentos · Cronica" },

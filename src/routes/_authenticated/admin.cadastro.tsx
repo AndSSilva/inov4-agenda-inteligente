@@ -21,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { excluirServico, listServicos, salvarServico, type Servico } from "@/lib/painel.functions";
 import { moeda } from "@/lib/tempo";
 
-export const Route = createFileRoute("/_authenticated/servicos")({
+export const Route = createFileRoute("/_authenticated/admin/cadastro")({
   head: () => ({
     meta: [
       { title: "Cadastro · Cronica" },

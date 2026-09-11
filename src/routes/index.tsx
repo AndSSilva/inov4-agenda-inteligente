@@ -30,7 +30,7 @@ function Home() {
             </span>
             <span className="text-sm font-semibold tracking-tight">Cronica</span>
           </div>
-          <Link to="/auth" className="text-sm font-medium text-branddeep">
+          <Link to="/admin/login" className="text-sm font-medium text-branddeep">
             Entrar
           </Link>
         </header>
@@ -49,10 +49,10 @@ function Home() {
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                to="/auth"
+                to="/admin/login"
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-cream shadow-board ring-1 ring-brand"
               >
-                Criar minha conta
+                Acessar o painel
               </Link>
               <Link
                 to="/agendar/$slug"
@@ -69,7 +69,9 @@ function Home() {
               <p className="text-xs font-medium tracking-[0.14em] text-branddeep uppercase">
                 Do jeito que funciona
               </p>
-              <h2 className="mt-1 text-2xl text-balance font-display">Quatro etapas, sem atrito.</h2>
+              <h2 className="mt-1 text-2xl text-balance font-display">
+                Quatro etapas, sem atrito.
+              </h2>
             </div>
             <div className="grid gap-2 p-5">
               {[

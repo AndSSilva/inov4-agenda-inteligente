@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { listClientes } from "@/lib/painel.functions";
 import { dataCurta } from "@/lib/tempo";
 
-export const Route = createFileRoute("/_authenticated/crm")({
+export const Route = createFileRoute("/_authenticated/admin/clientes")({
   head: () => ({
     meta: [
       { title: "Clientes · Cronica" },

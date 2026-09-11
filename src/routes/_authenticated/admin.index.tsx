@@ -7,7 +7,7 @@ import { StatusDot, StatusTag } from "@/components/StatusTag";
 import { getDashboard, listClientes } from "@/lib/painel.functions";
 import { horaLocal, moeda } from "@/lib/tempo";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
     meta: [
       { title: "Dashboard · Cronica" },

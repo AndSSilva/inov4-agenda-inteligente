@@ -16,11 +16,11 @@ import { brandingStyle } from "@/lib/branding";
 import { useEmpresaAtual } from "@/lib/admin-data";
 
 const LINKS = [
-  { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { to: "/agenda", label: "Agendamentos", icon: CalendarCheck },
-  { to: "/servicos", label: "Cadastro", icon: ClipboardList },
-  { to: "/crm", label: "Clientes", icon: Users },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/admin", label: "Dashboard", icon: BarChart3 },
+  { to: "/admin/agendamentos", label: "Agendamentos", icon: CalendarCheck },
+  { to: "/admin/cadastro", label: "Cadastro", icon: ClipboardList },
+  { to: "/admin/clientes", label: "Clientes", icon: Users },
+  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
 export function AdminShell({ title, children }: { title: string; children: ReactNode }) {
@@ -29,7 +29,7 @@ export function AdminShell({ title, children }: { title: string; children: React
 
   async function sair() {
     await supabase.auth.signOut();
-    void navigate({ to: "/auth" });
+    void navigate({ to: "/admin/login" });
   }
 
   if (isLoading) {
@@ -114,6 +114,7 @@ export function AdminShell({ title, children }: { title: string; children: React
               <Link
                 key={link.to}
                 to={link.to}
+                activeOptions={{ exact: true }}
                 activeProps={{ className: "bg-primary text-primary-foreground" }}
                 className="inline-flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent"
               >

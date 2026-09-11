@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useTemaVitrine } from "@/lib/tema-vitrine";
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/admin/login")({
   head: () => ({
     meta: [
       { title: "Acesso do administrador — Cronica" },
@@ -39,7 +39,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) void navigate({ to: "/dashboard" });
+      if (data.session) void navigate({ to: "/admin" });
     });
   }, [navigate]);
 
@@ -62,7 +62,7 @@ function AuthPage() {
         }
       }
 
-      void navigate({ to: "/dashboard" });
+      void navigate({ to: "/admin" });
     } catch {
       toast.error("E-mail ou senha inválidos.");
     } finally {
