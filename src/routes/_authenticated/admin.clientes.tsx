@@ -20,6 +20,8 @@ export const Route = createFileRoute("/_authenticated/admin/clientes")({
       },
       { property: "og:title", content: "Clientes · Cronica" },
       { property: "og:description", content: "Base de contatos com histórico de agendamentos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: CrmPage,

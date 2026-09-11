@@ -21,6 +21,8 @@ export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
       },
       { property: "og:title", content: "Configurações · Cronica" },
       { property: "og:description", content: "Endereço, link público e horários de atendimento." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ConfigPage,

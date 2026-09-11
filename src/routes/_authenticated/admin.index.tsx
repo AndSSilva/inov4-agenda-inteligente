@@ -14,6 +14,8 @@ export const Route = createFileRoute("/_authenticated/admin/")({
       { name: "description", content: "Resumo do dia, próximos agendamentos e métricas rápidas." },
       { property: "og:title", content: "Dashboard · Cronica" },
       { property: "og:description", content: "Resumo do dia e próximos agendamentos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: DashboardPage,

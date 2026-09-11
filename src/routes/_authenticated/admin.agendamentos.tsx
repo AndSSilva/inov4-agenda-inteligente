@@ -44,6 +44,8 @@ export const Route = createFileRoute("/_authenticated/admin/agendamentos")({
       },
       { property: "og:title", content: "Agendamentos · Cronica" },
       { property: "og:description", content: "Fila de agendamentos pendentes de ação." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AgendaPage,

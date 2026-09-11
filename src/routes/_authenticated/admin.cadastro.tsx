@@ -31,6 +31,8 @@ export const Route = createFileRoute("/_authenticated/admin/cadastro")({
       },
       { property: "og:title", content: "Cadastro · Cronica" },
       { property: "og:description", content: "Serviços, duração, preço e intervalo." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ServicosPage,
