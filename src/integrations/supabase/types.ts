@@ -299,7 +299,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "master"
-      status_agendamento: "pendente" | "aguardando_confirmacao" | "confirmado" | "cancelado" | "concluido"
+      status_agendamento:
+        | "pendente"
+        | "confirmado"
+        | "cancelado"
+        | "concluido"
+        | "aguardando_confirmacao"
       tipo_agenda:
         | "saude_bem_estar"
         | "beleza_estetica"
@@ -439,7 +444,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "master"],
-      status_agendamento: ["pendente", "aguardando_confirmacao", "confirmado", "cancelado", "concluido"],
+      status_agendamento: [
+        "pendente",
+        "confirmado",
+        "cancelado",
+        "concluido",
+        "aguardando_confirmacao",
+      ],
       tipo_agenda: [
         "saude_bem_estar",
         "beleza_estetica",
