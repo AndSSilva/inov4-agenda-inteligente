@@ -23,6 +23,8 @@ export const Route = createFileRoute("/master/login")({
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MasterLogin,
@@ -42,8 +44,11 @@ function MasterLogin() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
+      const userId = data.user?.id;
+      if (!userId) throw new Error("Não foi possível validar esta conta.");
+
       const { data: isMaster } = await supabase.rpc("is_master", {
-        _user_id: data.user!.id,
+        _user_id: userId,
       });
       if (!isMaster) {
         await supabase.auth.signOut();

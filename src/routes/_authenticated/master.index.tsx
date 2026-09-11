@@ -47,6 +47,10 @@ export const Route = createFileRoute("/_authenticated/master/")({
       { title: "Empresas da plataforma" },
       { name: "description", content: "Gestão interna das empresas da plataforma." },
       { name: "robots", content: "noindex, nofollow" },
+      { property: "og:title", content: "Empresas da plataforma" },
+      { property: "og:description", content: "Gestão interna das empresas da plataforma." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       {
@@ -303,7 +307,7 @@ function EmpresaDialog({
         <DialogHeader>
           <DialogTitle>{editando ? "Editar empresa" : "Nova empresa"}</DialogTitle>
           <DialogDescription>
-            A agenda pública fica em /agendar/{slug || "endereco-da-empresa"}.
+            A agenda pública fica em /{slug || "endereco-da-empresa"}.
           </DialogDescription>
         </DialogHeader>
 

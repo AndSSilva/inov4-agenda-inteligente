@@ -11,7 +11,7 @@ import {
 } from "@/lib/publico.functions";
 import { NOMES_DIAS, dataLocal, moeda, somaDias } from "@/lib/tempo";
 
-export const Route = createFileRoute("/agendar/$slug")({
+export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
     const empresa = await getEmpresaPublica({ data: { slug: params.slug } });
     if (!empresa) throw notFound();
@@ -20,7 +20,15 @@ export const Route = createFileRoute("/agendar/$slug")({
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
-        meta: [{ title: "Indisponível" }, { name: "robots", content: "noindex" }],
+        meta: [
+          { title: "Agenda indisponível — Cronica" },
+          { name: "description", content: "Esta agenda pública não está disponível." },
+          { name: "robots", content: "noindex" },
+          { property: "og:title", content: "Agenda indisponível — Cronica" },
+          { property: "og:description", content: "Esta agenda pública não está disponível." },
+          { property: "og:type", content: "website" },
+          { name: "twitter:card", content: "summary" },
+        ],
       };
     }
     const titulo = `Agendar em ${loaderData.empresa.nome}`;
@@ -31,6 +39,8 @@ export const Route = createFileRoute("/agendar/$slug")({
         { name: "description", content: desc },
         { property: "og:title", content: titulo },
         { property: "og:description", content: desc },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
       ],
     };
   },

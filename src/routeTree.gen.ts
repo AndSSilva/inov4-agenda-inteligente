@@ -10,15 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
-import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as MasterLoginRouteImport } from './routes/master.login'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminAgendamentosRouteImport } from './routes/_authenticated/admin.agendamentos'
+import { Route as AuthenticatedAdminCadastroRouteImport } from './routes/_authenticated/admin.cadastro'
+import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
+import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
 import { Route as AuthenticatedMasterIndexRouteImport } from './routes/_authenticated/master.index'
 
 const IndexRoute = IndexRouteImport.update({
@@ -26,44 +26,18 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
-  id: '/agenda',
-  path: '/agenda',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedConfiguracoesRoute =
-  AuthenticatedConfiguracoesRouteImport.update({
-    id: '/configuracoes',
-    path: '/configuracoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
-  id: '/servicos',
-  path: '/servicos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AgendarSlugRoute = AgendarSlugRouteImport.update({
-  id: '/agendar/$slug',
-  path: '/agendar/$slug',
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MasterLoginRoute = MasterLoginRouteImport.update({
@@ -71,6 +45,35 @@ const MasterLoginRoute = MasterLoginRouteImport.update({
   path: '/master/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminAgendamentosRoute =
+  AuthenticatedAdminAgendamentosRouteImport.update({
+    id: '/admin/agendamentos',
+    path: '/admin/agendamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminCadastroRoute =
+  AuthenticatedAdminCadastroRouteImport.update({
+    id: '/admin/cadastro',
+    path: '/admin/cadastro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminClientesRoute =
+  AuthenticatedAdminClientesRouteImport.update({
+    id: '/admin/clientes',
+    path: '/admin/clientes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminConfiguracoesRoute =
+  AuthenticatedAdminConfiguracoesRouteImport.update({
+    id: '/admin/configuracoes',
+    path: '/admin/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMasterIndexRoute =
   AuthenticatedMasterIndexRouteImport.update({
     id: '/master/',
@@ -80,87 +83,87 @@ const AuthenticatedMasterIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/agenda': typeof AuthenticatedAgendaRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/crm': typeof AuthenticatedCrmRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/servicos': typeof AuthenticatedServicosRoute
-  '/agendar/$slug': typeof AgendarSlugRoute
+  '/$slug': typeof SlugRoute
+  '/admin/login': typeof AdminLoginRoute
   '/master/login': typeof MasterLoginRoute
+  '/admin/agendamentos': typeof AuthenticatedAdminAgendamentosRoute
+  '/admin/cadastro': typeof AuthenticatedAdminCadastroRoute
+  '/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/master/': typeof AuthenticatedMasterIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/agenda': typeof AuthenticatedAgendaRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/crm': typeof AuthenticatedCrmRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/servicos': typeof AuthenticatedServicosRoute
-  '/agendar/$slug': typeof AgendarSlugRoute
+  '/$slug': typeof SlugRoute
+  '/admin/login': typeof AdminLoginRoute
   '/master/login': typeof MasterLoginRoute
+  '/admin/agendamentos': typeof AuthenticatedAdminAgendamentosRoute
+  '/admin/cadastro': typeof AuthenticatedAdminCadastroRoute
+  '/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/master': typeof AuthenticatedMasterIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
-  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/_authenticated/crm': typeof AuthenticatedCrmRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/servicos': typeof AuthenticatedServicosRoute
-  '/agendar/$slug': typeof AgendarSlugRoute
+  '/$slug': typeof SlugRoute
+  '/admin/login': typeof AdminLoginRoute
   '/master/login': typeof MasterLoginRoute
+  '/_authenticated/admin/agendamentos': typeof AuthenticatedAdminAgendamentosRoute
+  '/_authenticated/admin/cadastro': typeof AuthenticatedAdminCadastroRoute
+  '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
+  '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/master/': typeof AuthenticatedMasterIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/auth'
-    | '/agenda'
-    | '/configuracoes'
-    | '/crm'
-    | '/dashboard'
-    | '/servicos'
-    | '/agendar/$slug'
+    | '/$slug'
+    | '/admin/login'
     | '/master/login'
+    | '/admin/agendamentos'
+    | '/admin/cadastro'
+    | '/admin/clientes'
+    | '/admin/configuracoes'
+    | '/admin/'
     | '/master/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/auth'
-    | '/agenda'
-    | '/configuracoes'
-    | '/crm'
-    | '/dashboard'
-    | '/servicos'
-    | '/agendar/$slug'
+    | '/$slug'
+    | '/admin/login'
     | '/master/login'
+    | '/admin/agendamentos'
+    | '/admin/cadastro'
+    | '/admin/clientes'
+    | '/admin/configuracoes'
+    | '/admin'
     | '/master'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/auth'
-    | '/_authenticated/agenda'
-    | '/_authenticated/configuracoes'
-    | '/_authenticated/crm'
-    | '/_authenticated/dashboard'
-    | '/_authenticated/servicos'
-    | '/agendar/$slug'
+    | '/$slug'
+    | '/admin/login'
     | '/master/login'
+    | '/_authenticated/admin/agendamentos'
+    | '/_authenticated/admin/cadastro'
+    | '/_authenticated/admin/clientes'
+    | '/_authenticated/admin/configuracoes'
+    | '/_authenticated/admin/'
     | '/_authenticated/master/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
-  AgendarSlugRoute: typeof AgendarSlugRoute
+  SlugRoute: typeof SlugRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   MasterLoginRoute: typeof MasterLoginRoute
 }
 
@@ -173,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -180,53 +190,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/agenda': {
-      id: '/_authenticated/agenda'
-      path: '/agenda'
-      fullPath: '/agenda'
-      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes': {
-      id: '/_authenticated/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/crm': {
-      id: '/_authenticated/crm'
-      path: '/crm'
-      fullPath: '/crm'
-      preLoaderRoute: typeof AuthenticatedCrmRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/servicos': {
-      id: '/_authenticated/servicos'
-      path: '/servicos'
-      fullPath: '/servicos'
-      preLoaderRoute: typeof AuthenticatedServicosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/agendar/$slug': {
-      id: '/agendar/$slug'
-      path: '/agendar/$slug'
-      fullPath: '/agendar/$slug'
-      preLoaderRoute: typeof AgendarSlugRouteImport
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/master/login': {
@@ -235,6 +203,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/master/login'
       preLoaderRoute: typeof MasterLoginRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/agendamentos': {
+      id: '/_authenticated/admin/agendamentos'
+      path: '/admin/agendamentos'
+      fullPath: '/admin/agendamentos'
+      preLoaderRoute: typeof AuthenticatedAdminAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/cadastro': {
+      id: '/_authenticated/admin/cadastro'
+      path: '/admin/cadastro'
+      fullPath: '/admin/cadastro'
+      preLoaderRoute: typeof AuthenticatedAdminCadastroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/clientes': {
+      id: '/_authenticated/admin/clientes'
+      path: '/admin/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AuthenticatedAdminClientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/configuracoes': {
+      id: '/_authenticated/admin/configuracoes'
+      path: '/admin/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AuthenticatedAdminConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/master/': {
       id: '/_authenticated/master/'
@@ -247,20 +250,20 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
-  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
-  AuthenticatedCrmRoute: typeof AuthenticatedCrmRoute
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
+  AuthenticatedAdminAgendamentosRoute: typeof AuthenticatedAdminAgendamentosRoute
+  AuthenticatedAdminCadastroRoute: typeof AuthenticatedAdminCadastroRoute
+  AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
+  AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedMasterIndexRoute: typeof AuthenticatedMasterIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
-  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
-  AuthenticatedCrmRoute: AuthenticatedCrmRoute,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedServicosRoute: AuthenticatedServicosRoute,
+  AuthenticatedAdminAgendamentosRoute: AuthenticatedAdminAgendamentosRoute,
+  AuthenticatedAdminCadastroRoute: AuthenticatedAdminCadastroRoute,
+  AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
+  AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedMasterIndexRoute: AuthenticatedMasterIndexRoute,
 }
 
@@ -270,8 +273,8 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
-  AgendarSlugRoute: AgendarSlugRoute,
+  SlugRoute: SlugRoute,
+  AdminLoginRoute: AdminLoginRoute,
   MasterLoginRoute: MasterLoginRoute,
 }
 export const routeTree = rootRouteImport
