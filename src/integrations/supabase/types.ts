@@ -147,6 +147,7 @@ export type Database = {
       }
       empresas: {
         Row: {
+          atender_feriados: boolean
           ativa: boolean
           cor_fundo: string
           cor_primaria: string
@@ -158,12 +159,15 @@ export type Database = {
           hora_fim: string
           hora_inicio: string
           id: string
+          intervalo_fim: string | null
+          intervalo_inicio: string | null
           logo_url: string | null
           nome: string
           slug: string
           tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
         }
         Insert: {
+          atender_feriados?: boolean
           ativa?: boolean
           cor_fundo?: string
           cor_primaria?: string
@@ -175,12 +179,15 @@ export type Database = {
           hora_fim?: string
           hora_inicio?: string
           id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
           logo_url?: string | null
           nome: string
           slug: string
           tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
         }
         Update: {
+          atender_feriados?: boolean
           ativa?: boolean
           cor_fundo?: string
           cor_primaria?: string
@@ -192,12 +199,49 @@ export type Database = {
           hora_fim?: string
           hora_inicio?: string
           id?: string
+          intervalo_fim?: string | null
+          intervalo_inicio?: string | null
           logo_url?: string | null
           nome?: string
           slug?: string
           tipo_agenda?: Database["public"]["Enums"]["tipo_agenda"]
         }
         Relationships: []
+      }
+      bloqueios: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          fim: string
+          id: string
+          inicio: string
+          motivo: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          fim: string
+          id?: string
+          inicio: string
+          motivo?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          fim?: string
+          id?: string
+          inicio?: string
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       servicos: {
         Row: {

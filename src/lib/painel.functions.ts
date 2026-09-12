@@ -10,6 +10,9 @@ export type Empresa = {
   endereco: string;
   hora_inicio: string;
   hora_fim: string;
+  intervalo_inicio: string | null;
+  intervalo_fim: string | null;
+  atender_feriados: boolean;
   dias_semana: number[];
   logo_url: string | null;
   cor_primaria: string;
@@ -73,7 +76,7 @@ async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
   const { data: empresa, error } = await context.supabase
     .from("empresas")
     .select(
-      "id, nome, slug, endereco, hora_inicio, hora_fim, dias_semana, logo_url, cor_primaria, cor_secundaria, cor_fundo, cor_texto, tipo_agenda, ativa",
+      "id, nome, slug, endereco, hora_inicio, hora_fim, intervalo_inicio, intervalo_fim, atender_feriados, dias_semana, logo_url, cor_primaria, cor_secundaria, cor_fundo, cor_texto, tipo_agenda, ativa",
     )
     .eq("id", vinculo.empresa_id)
     .single();
@@ -403,10 +406,20 @@ export const salvarEmpresa = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
       .object({
-        nome: z.string().trim().min(2).max(80),
         endereco: z.string().trim().max(200).optional().default(""),
         hora_inicio: z.string().regex(/^\d{2}:\d{2}$/),
         hora_fim: z.string().regex(/^\d{2}:\d{2}$/),
+        intervalo_inicio: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .nullable()
+          .optional(),
+        intervalo_fim: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .nullable()
+          .optional(),
+        atender_feriados: z.boolean(),
         dias_semana: z.array(z.number().int().min(0).max(6)).min(1),
       })
       .parse(input),
@@ -414,7 +427,73 @@ export const salvarEmpresa = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as Ctx;
     const empresa = await empresaDoUsuario(ctx);
-    const { error } = await ctx.supabase.from("empresas").update(data).eq("id", empresa.id);
+    const payload = {
+      ...data,
+      intervalo_inicio: data.intervalo_inicio ?? null,
+      intervalo_fim: data.intervalo_fim ?? null,
+    };
+    const { error } = await ctx.supabase.from("empresas").update(payload).eq("id", empresa.id);
     if (error) return { ok: false as const, erro: error.message };
+    return { ok: true as const };
+  });
+
+export type Bloqueio = {
+  id: string;
+  inicio: string;
+  fim: string;
+  motivo: string | null;
+};
+
+export const listBloqueios = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as unknown as Ctx;
+    const empresa = await empresaDoUsuario(ctx);
+    const { data: rows, error } = await ctx.supabase
+      .from("bloqueios")
+      .select("id, inicio, fim, motivo")
+      .eq("empresa_id", empresa.id)
+      .gte("fim", new Date().toISOString())
+      .order("inicio", { ascending: true });
+    if (error) throw new Error(error.message);
+    return { bloqueios: (rows ?? []) as Bloqueio[] };
+  });
+
+export const criarBloqueio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        inicio: z.string().min(1),
+        fim: z.string().min(1),
+        motivo: z.string().trim().max(140).optional().default(""),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const empresa = await empresaDoUsuario(ctx);
+    const inicio = new Date(data.inicio);
+    const fim = new Date(data.fim);
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime()) || fim <= inicio) {
+      throw new Error("Período inválido.");
+    }
+    const { error } = await ctx.supabase.from("bloqueios").insert({
+      empresa_id: empresa.id,
+      inicio: inicio.toISOString(),
+      fim: fim.toISOString(),
+      motivo: data.motivo || null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const excluirBloqueio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const { error } = await ctx.supabase.from("bloqueios").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
     return { ok: true as const };
   });

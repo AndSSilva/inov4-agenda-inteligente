@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { criarClientePublico } from "./supabase-publico";
 import { diaSemanaLocal, isoLocal } from "./tempo";
+import { isFeriadoNacional } from "./feriados";
 
 export type ServicoPublico = {
   id: string;
@@ -71,13 +72,16 @@ export const getHorariosDisponiveis = createServerFn({ method: "GET" })
     const supabase = criarClientePublico();
     const { data: empresa } = await supabase
       .from("empresas")
-      .select("id, hora_inicio, hora_fim, dias_semana")
+      .select(
+        "id, hora_inicio, hora_fim, intervalo_inicio, intervalo_fim, atender_feriados, dias_semana",
+      )
       .eq("slug", data.slug)
       .maybeSingle();
     if (!empresa) return [];
 
     const dias = (empresa.dias_semana ?? []) as number[];
     if (!dias.includes(diaSemanaLocal(data.data))) return [];
+    if (!empresa.atender_feriados && isFeriadoNacional(data.data)) return [];
 
     const { data: servico } = await supabase
       .from("servicos")
@@ -93,10 +97,31 @@ export const getHorariosDisponiveis = createServerFn({ method: "GET" })
       p_data: data.data,
     });
 
-    const intervalos = (ocupados ?? []).map((o) => ({
-      inicio: new Date(o.inicio).getTime(),
-      fim: new Date(o.fim).getTime(),
-    }));
+    const { data: bloqueios } = await supabase
+      .from("bloqueios")
+      .select("inicio, fim")
+      .eq("empresa_id", empresa.id)
+      .lt("inicio", isoLocal(data.data, "23:59"))
+      .gt("fim", isoLocal(data.data, "00:00"));
+
+    const intervalos = [
+      ...(ocupados ?? []).map((o) => ({
+        inicio: new Date(o.inicio).getTime(),
+        fim: new Date(o.fim).getTime(),
+      })),
+      ...(bloqueios ?? []).map((b) => ({
+        inicio: new Date(b.inicio).getTime(),
+        fim: new Date(b.fim).getTime(),
+      })),
+      ...(empresa.intervalo_inicio && empresa.intervalo_fim
+        ? [
+            {
+              inicio: new Date(isoLocal(data.data, empresa.intervalo_inicio.slice(0, 5))).getTime(),
+              fim: new Date(isoLocal(data.data, empresa.intervalo_fim.slice(0, 5))).getTime(),
+            },
+          ]
+        : []),
+    ];
 
     const passo = Math.max(5, servico.duracao_min + servico.intervalo_min);
     const abre = minutos(empresa.hora_inicio);
