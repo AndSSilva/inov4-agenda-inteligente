@@ -77,6 +77,6 @@ export function mensagemNovaReservaCliente(
   dados: DadosMensagem & { clienteTelefone: string; filiacao?: string | undefined },
 ) {
   const { data, hora } = dataHoraFormatada(dados.inicioIso);
-  const linhaObs = dados.filiacao ? `\nObs: ${dados.filiacao}` : "";
-  return `Olá! Acabei de agendar pela agenda online da ${dados.empresaNome}.\n\nServiço: ${dados.servicoNome}\nDia: ${data} às ${hora}\nNome: ${dados.clienteNome}\nTelefone: ${dados.clienteTelefone}${linhaObs}\n\nAguardo a confirmação, obrigado(a)!`;
+  const linhaPet = dados.filiacao ? `Pet: ${dados.filiacao}\n` : "";
+  return `Olá! Acabei de agendar pela agenda online da ${dados.empresaNome}.\n\nServiço: ${dados.servicoNome}\nDia: ${data} às ${hora}\n${linhaPet}Responsável: ${dados.clienteNome}\nTelefone: ${dados.clienteTelefone}\n\nAguardo a confirmação, obrigado(a)!`;
 }

@@ -152,7 +152,7 @@ export const criarReservaPublica = createServerFn({ method: "POST" })
         nome: z.string().trim().min(2).max(100),
         telefone: z.string().trim().min(10).max(25),
         email: z.string().trim().email().max(255).optional().or(z.literal("")),
-        filiacao: z.string().trim().max(120).optional().or(z.literal("")),
+        filiacao: z.string().trim().min(1, "Informe o nome do pet").max(120),
       })
       .parse(input),
   )

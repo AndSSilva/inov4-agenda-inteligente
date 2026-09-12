@@ -264,7 +264,8 @@ function AgendarPage() {
                   confirmar();
                 }}
               >
-                <Campo label="Nome completo" value={nome} onChange={setNome} required />
+                <Campo label="Nome do pet" value={filiacao} onChange={setFiliacao} required />
+                <Campo label="Nome do responsável" value={nome} onChange={setNome} required />
                 <Campo
                   label="Telefone (WhatsApp)"
                   value={telefone}
@@ -273,11 +274,6 @@ function AgendarPage() {
                   type="tel"
                 />
                 <Campo label="E-mail (opcional)" value={email} onChange={setEmail} type="email" />
-                <Campo
-                  label="Nome do pet ou dependente (opcional)"
-                  value={filiacao}
-                  onChange={setFiliacao}
-                />
                 <div className="mt-1 flex items-center justify-between">
                   <button
                     type="button"
