@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTemaVitrine } from "@/lib/tema-vitrine";
 
 export const Route = createFileRoute("/master/login")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Acesso da plataforma" },

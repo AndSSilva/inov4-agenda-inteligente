@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTemaVitrine } from "@/lib/tema-vitrine";
 
 export const Route = createFileRoute("/admin/login")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Acesso do administrador — Cronica" },
