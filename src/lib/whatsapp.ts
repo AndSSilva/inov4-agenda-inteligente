@@ -71,3 +71,12 @@ export function mensagemRemarcacao(dados: DadosMensagem & { novoInicioIso: strin
   const nova = dataHoraFormatada(dados.novoInicioIso);
   return `Olá, ${dados.clienteNome}! Seu agendamento de *${dados.servicoNome}* na ${dados.empresaNome} foi remarcado para ${nova.data} às ${nova.hora}. Qualquer coisa é só chamar por aqui.`;
 }
+
+/** Mensagem que o CLIENTE manda pro WhatsApp da empresa ao concluir a reserva pública. */
+export function mensagemNovaReservaCliente(
+  dados: DadosMensagem & { clienteTelefone: string; filiacao?: string | undefined },
+) {
+  const { data, hora } = dataHoraFormatada(dados.inicioIso);
+  const linhaObs = dados.filiacao ? `\nObs: ${dados.filiacao}` : "";
+  return `Olá! Acabei de agendar pela agenda online da ${dados.empresaNome}.\n\nServiço: ${dados.servicoNome}\nDia: ${data} às ${hora}\nNome: ${dados.clienteNome}\nTelefone: ${dados.clienteTelefone}${linhaObs}\n\nAguardo a confirmação, obrigado(a)!`;
+}

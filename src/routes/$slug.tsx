@@ -10,6 +10,7 @@ import {
   type ServicoPublico,
 } from "@/lib/publico.functions";
 import { NOMES_DIAS, dataLocal, moeda, somaDias } from "@/lib/tempo";
+import { linkWhatsApp, mensagemNovaReservaCliente } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
@@ -85,6 +86,37 @@ function AgendarPage() {
   async function confirmar() {
     if (!servico || !hora) return;
     setEnviando(true);
+
+    // Abre o WhatsApp de forma síncrona, dentro do gesto de clique — se
+    // esperarmos a resposta do servidor antes, o navegador bloqueia como
+    // popup. A reserva ainda é criada/validada no passo seguinte.
+    let janela: Window | null = null;
+    if (empresa.whatsapp_numero) {
+      const url = linkWhatsApp(
+        empresa.whatsapp_numero,
+        mensagemNovaReservaCliente({
+          clienteNome: nome,
+          clienteTelefone: telefone,
+          servicoNome: servico.nome,
+          empresaNome: empresa.nome,
+          inicioIso: `${data}T${hora}:00-03:00`,
+          filiacao: filiacao || undefined,
+        }),
+      );
+      try {
+        janela = window.open(url, "_blank", "noopener,noreferrer");
+      } catch {
+        janela = null;
+      }
+      if (!janela) {
+        try {
+          (window.top ?? window).location.href = url;
+        } catch {
+          window.location.href = url;
+        }
+      }
+    }
+
     try {
       const res = await reservar({
         data: { slug, servicoId: servico.id, data, hora, nome, telefone, email, filiacao },
@@ -280,6 +312,26 @@ function AgendarPage() {
                 {empresa.nome} confirma pelo WhatsApp {telefone}
                 {filiacao ? ` · ${filiacao}` : ""}.
               </p>
+              {empresa.whatsapp_numero && (
+                <a
+                  href={linkWhatsApp(
+                    empresa.whatsapp_numero,
+                    mensagemNovaReservaCliente({
+                      clienteNome: nome,
+                      clienteTelefone: telefone,
+                      servicoNome: servico.nome,
+                      empresaNome: empresa.nome,
+                      inicioIso: `${data}T${hora}:00-03:00`,
+                      filiacao: filiacao || undefined,
+                    }),
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-cream ring-1 ring-brand"
+                >
+                  Falar no WhatsApp
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -291,7 +343,7 @@ function AgendarPage() {
                   setEmail("");
                   setFiliacao("");
                 }}
-                className="mt-4 rounded-lg px-4 py-2 text-sm text-inksoft ring-1 ring-border"
+                className="mt-2 rounded-lg px-4 py-2 text-sm text-inksoft ring-1 ring-border"
               >
                 Fazer outro agendamento
               </button>

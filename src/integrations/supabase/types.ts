@@ -165,6 +165,7 @@ export type Database = {
           nome: string
           slug: string
           tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
+          whatsapp_numero: string
         }
         Insert: {
           atender_feriados?: boolean
@@ -185,6 +186,7 @@ export type Database = {
           nome: string
           slug: string
           tipo_agenda: Database["public"]["Enums"]["tipo_agenda"]
+          whatsapp_numero?: string
         }
         Update: {
           atender_feriados?: boolean
@@ -205,6 +207,7 @@ export type Database = {
           nome?: string
           slug?: string
           tipo_agenda?: Database["public"]["Enums"]["tipo_agenda"]
+          whatsapp_numero?: string
         }
         Relationships: []
       }

@@ -21,6 +21,7 @@ export type Empresa = {
   cor_texto: string;
   tipo_agenda: string;
   ativa: boolean;
+  whatsapp_numero: string;
 };
 
 export type Servico = {
@@ -76,7 +77,7 @@ async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
   const { data: empresa, error } = await context.supabase
     .from("empresas")
     .select(
-      "id, nome, slug, endereco, hora_inicio, hora_fim, intervalo_inicio, intervalo_fim, atender_feriados, dias_semana, logo_url, cor_primaria, cor_secundaria, cor_fundo, cor_texto, tipo_agenda, ativa",
+      "id, nome, slug, endereco, hora_inicio, hora_fim, intervalo_inicio, intervalo_fim, atender_feriados, dias_semana, logo_url, cor_primaria, cor_secundaria, cor_fundo, cor_texto, tipo_agenda, ativa, whatsapp_numero",
     )
     .eq("id", vinculo.empresa_id)
     .single();
@@ -421,6 +422,7 @@ export const salvarEmpresa = createServerFn({ method: "POST" })
           .optional(),
         atender_feriados: z.boolean(),
         dias_semana: z.array(z.number().int().min(0).max(6)).min(1),
+        whatsapp_numero: z.string().trim().max(20).optional().default(""),
       })
       .parse(input),
   )
@@ -431,6 +433,7 @@ export const salvarEmpresa = createServerFn({ method: "POST" })
       ...data,
       intervalo_inicio: data.intervalo_inicio ?? null,
       intervalo_fim: data.intervalo_fim ?? null,
+      whatsapp_numero: data.whatsapp_numero.replace(/\D/g, ""),
     };
     const { error } = await ctx.supabase.from("empresas").update(payload).eq("id", empresa.id);
     if (error) return { ok: false as const, erro: error.message };

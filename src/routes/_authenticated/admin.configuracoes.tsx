@@ -51,6 +51,7 @@ function ConfigPage() {
   const { data } = useQuery({ queryKey: ["empresa-atual"], queryFn: () => carregar() });
 
   const [endereco, setEndereco] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFim, setHoraFim] = useState("18:00");
   const [temIntervalo, setTemIntervalo] = useState(false);
@@ -62,6 +63,7 @@ function ConfigPage() {
   useEffect(() => {
     if (!data) return;
     setEndereco(data.endereco);
+    setWhatsapp(data.whatsapp_numero);
     setHoraInicio(data.hora_inicio.slice(0, 5));
     setHoraFim(data.hora_fim.slice(0, 5));
     setTemIntervalo(Boolean(data.intervalo_inicio && data.intervalo_fim));
@@ -76,6 +78,7 @@ function ConfigPage() {
       salvar({
         data: {
           endereco,
+          whatsapp_numero: whatsapp,
           hora_inicio: horaInicio,
           hora_fim: horaFim,
           intervalo_inicio: temIntervalo ? intervaloInicio : null,
@@ -113,6 +116,21 @@ function ConfigPage() {
             value={endereco}
             onChange={(event) => setEndereco(event.target.value)}
           />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="config-whatsapp">WhatsApp do negócio (com DDD)</Label>
+          <Input
+            id="config-whatsapp"
+            type="tel"
+            placeholder="(11) 98888-7766"
+            className="h-12"
+            value={whatsapp}
+            onChange={(event) => setWhatsapp(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Ao final da reserva, o cliente é direcionado pra esse número no WhatsApp.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
