@@ -44,7 +44,7 @@ export function mensagemConfirmacao({
   inicioIso,
 }: DadosMensagem) {
   const { data, hora } = dataHoraFormatada(inicioIso);
-  return `Olá, ${clienteNome}! Aqui é da ${empresaNome}. Confirmando seu agendamento de *${servicoNome}* no dia ${data} às ${hora}. Você confirma? 🙂`;
+  return `Olá, ${clienteNome}! Aqui é da ${empresaNome}. Confirmando seu agendamento de *${servicoNome}* no dia ${data} às ${hora}. Você confirma?`;
 }
 
 export function mensagemLembrete({
