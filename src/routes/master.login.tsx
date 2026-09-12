@@ -17,14 +17,14 @@ export const Route = createFileRoute("/master/login")({
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Acesso da plataforma" },
       { property: "og:description", content: "Área interna da plataforma." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap",
       },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MasterLogin,
