@@ -78,6 +78,41 @@ export type Database = {
           },
         ]
       }
+      bloqueios: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          fim: string
+          id: string
+          inicio: string
+          motivo: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          fim: string
+          id?: string
+          inicio: string
+          motivo?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          fim?: string
+          id?: string
+          inicio?: string
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           created_at: string
@@ -210,41 +245,6 @@ export type Database = {
           whatsapp_numero?: string
         }
         Relationships: []
-      }
-      bloqueios: {
-        Row: {
-          created_at: string
-          empresa_id: string
-          fim: string
-          id: string
-          inicio: string
-          motivo: string | null
-        }
-        Insert: {
-          created_at?: string
-          empresa_id: string
-          fim: string
-          id?: string
-          inicio: string
-          motivo?: string | null
-        }
-        Update: {
-          created_at?: string
-          empresa_id?: string
-          fim?: string
-          id?: string
-          inicio?: string
-          motivo?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bloqueios_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       servicos: {
         Row: {
