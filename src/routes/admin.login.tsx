@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTemaVitrine } from "@/lib/tema-vitrine";
 
 export const Route = createFileRoute("/admin/login")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Acesso do administrador — Cronica" },
@@ -19,14 +20,14 @@ export const Route = createFileRoute("/admin/login")({
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Acesso do administrador" },
       { property: "og:description", content: "Área restrita do painel." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap",
       },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
