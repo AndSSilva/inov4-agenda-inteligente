@@ -155,7 +155,15 @@ export const criarReservaPublica = createServerFn({ method: "POST" })
         data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         hora: z.string().regex(/^\d{2}:\d{2}$/),
         nome: z.string().trim().min(2).max(100),
-        telefone: z.string().trim().min(10).max(25),
+        telefone: z
+          .string()
+          .trim()
+          .min(10)
+          .max(25)
+          .refine((v) => {
+            const digitos = v.replace(/\D/g, "");
+            return digitos.length === 10 || digitos.length === 11;
+          }, "Telefone inválido — informe DDD + número"),
         email: z.string().trim().email().max(255).optional().or(z.literal("")),
         filiacao: z.string().trim().min(1, "Informe o nome do pet").max(120),
       })

@@ -10,6 +10,7 @@ import {
   type ServicoPublico,
 } from "@/lib/publico.functions";
 import { NOMES_DIAS, dataLocal, moeda, somaDias } from "@/lib/tempo";
+import { formatarTelefone, telefoneValido } from "@/lib/telefone";
 import { linkWhatsApp, mensagemNovaReservaCliente } from "@/lib/whatsapp";
 import { brandingStyle } from "@/lib/branding";
 
@@ -86,6 +87,10 @@ function AgendarPage() {
 
   async function confirmar() {
     if (!servico || !hora) return;
+    if (!telefoneValido(telefone)) {
+      toast.error("Telefone inválido. Informe o DDD + número.");
+      return;
+    }
     setEnviando(true);
 
     // Abre o WhatsApp de forma síncrona, dentro do gesto de clique — se
@@ -191,7 +196,12 @@ function AgendarPage() {
                       <span className="block text-sm font-medium">{s.nome}</span>
                       <span className="block text-xs text-inksoft">{s.duracao_min} min</span>
                     </span>
-                    <span className="text-sm font-semibold font-display">{moeda(s.preco)}</span>
+                    <span className="text-right">
+                      <span className="block text-[0.65rem] text-inksoft">a partir de</span>
+                      <span className="block text-sm font-semibold font-display">
+                        {moeda(s.preco)}
+                      </span>
+                    </span>
                   </button>
                 ))}
               </div>
@@ -286,13 +296,23 @@ function AgendarPage() {
               >
                 <Campo label="Nome do pet" value={filiacao} onChange={setFiliacao} required />
                 <Campo label="Nome do responsável" value={nome} onChange={setNome} required />
-                <Campo
-                  label="Telefone (WhatsApp)"
-                  value={telefone}
-                  onChange={setTelefone}
-                  required
-                  type="tel"
-                />
+                <label className="grid gap-1">
+                  <span className="text-xs text-inksoft">Telefone (WhatsApp)</span>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    required
+                    value={telefone}
+                    placeholder="(11) 91234-5678"
+                    onChange={(e) => setTelefone(formatarTelefone(e.target.value))}
+                    className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
+                  />
+                  {telefone.length > 0 && !telefoneValido(telefone) && (
+                    <span className="text-xs text-canc">
+                      Informe DDD + número (10 ou 11 dígitos).
+                    </span>
+                  )}
+                </label>
                 <Campo label="E-mail (opcional)" value={email} onChange={setEmail} type="email" />
                 <div className="mt-1 flex items-center justify-between">
                   <button
@@ -304,7 +324,7 @@ function AgendarPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={enviando}
+                    disabled={enviando || !telefoneValido(telefone)}
                     className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-cream ring-1 ring-brand disabled:opacity-60"
                   >
                     {enviando ? "Reservando…" : "Confirmar reserva"}
