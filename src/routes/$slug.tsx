@@ -215,7 +215,7 @@ function AgendarPage() {
                 {servico.nome} · {servico.duracao_min} min · {moeda(servico.preco)}
               </p>
 
-              <div className="mt-3 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-5 lg:grid-cols-7">
                 {proximosDias.map((d) => {
                   const dow = new Date(`${d}T12:00:00-03:00`).getDay();
                   const ativo = empresa.dias_semana.includes(dow);
@@ -229,7 +229,7 @@ function AgendarPage() {
                         setData(d);
                         setHora(null);
                       }}
-                      className={`min-w-14 shrink-0 rounded-lg px-2 py-2 text-center ring-1 ring-border ${
+                      className={`rounded-lg px-2 py-2.5 text-center ring-1 ring-border ${
                         on ? "bg-brand text-cream" : "bg-cream/60"
                       } ${ativo ? "" : "opacity-35"}`}
                     >
@@ -240,7 +240,7 @@ function AgendarPage() {
                 })}
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+              <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
                 {isFetching && <p className="col-span-full text-sm text-inksoft">Buscando…</p>}
                 {!isFetching && (horarios ?? []).length === 0 && (
                   <p className="col-span-full text-sm text-inksoft">
