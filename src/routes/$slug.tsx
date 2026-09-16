@@ -136,13 +136,16 @@ function AgendarPage() {
 
   return (
     <div
-      className="min-h-screen bg-cream px-4 py-6 text-ink"
+      className={`min-h-screen bg-cream px-4 py-6 text-ink ${
+        empresa.logo_url
+          ? "[background-size:auto,auto,52px_52px] sm:[background-size:auto,auto,72px_72px] lg:[background-size:auto,auto,96px_96px]"
+          : ""
+      }`}
       style={{
         ...brandingStyle(empresa),
         ...(empresa.logo_url
           ? {
-              backgroundImage: `${GLOW}, linear-gradient(color-mix(in oklch, var(--cream) 93%, transparent), color-mix(in oklch, var(--cream) 93%, transparent)), url(${empresa.logo_url})`,
-              backgroundSize: "auto, auto, 110px 110px",
+              backgroundImage: `${GLOW}, linear-gradient(color-mix(in oklch, var(--cream) 92%, transparent), color-mix(in oklch, var(--cream) 92%, transparent)), url(${empresa.logo_url})`,
               backgroundPosition: "0% 0%, 0% 0%, 0 0",
               backgroundRepeat: "repeat, repeat, repeat",
             }
