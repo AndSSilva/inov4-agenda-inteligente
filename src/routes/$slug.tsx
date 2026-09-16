@@ -60,6 +60,23 @@ function Aviso({ texto }: { texto: string }) {
   );
 }
 
+const TURNOS = [
+  { chave: "manha", label: "Manhã", de: 6, ate: 12 },
+  { chave: "tarde", label: "Tarde", de: 12, ate: 18 },
+  { chave: "noite", label: "Noite", de: 18, ate: 24 },
+  { chave: "madrugada", label: "Madrugada", de: 0, ate: 6 },
+] as const;
+
+function agruparPorTurno(horarios: string[]) {
+  return TURNOS.map((turno) => ({
+    ...turno,
+    horarios: horarios.filter((h) => {
+      const hora = Number(h.slice(0, 2));
+      return hora >= turno.de && hora < turno.ate;
+    }),
+  })).filter((turno) => turno.horarios.length > 0);
+}
+
 function AgendarPage() {
   const { empresa } = Route.useLoaderData();
   const { slug } = Route.useParams();
@@ -240,24 +257,32 @@ function AgendarPage() {
                 })}
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
-                {isFetching && <p className="col-span-full text-sm text-inksoft">Buscando…</p>}
-                {!isFetching && (horarios ?? []).length === 0 && (
-                  <p className="col-span-full text-sm text-inksoft">
-                    Sem horários livres nesta data.
-                  </p>
-                )}
-                {(horarios ?? []).map((h) => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => setHora(h)}
-                    className={`rounded-lg py-2 text-sm ring-1 ring-border ${
-                      hora === h ? "slot-on bg-brand text-cream" : "slot-fill"
-                    }`}
-                  >
-                    {h}
-                  </button>
+              {isFetching && <p className="mt-3 text-sm text-inksoft">Buscando…</p>}
+              {!isFetching && (horarios ?? []).length === 0 && (
+                <p className="mt-3 text-sm text-inksoft">Sem horários livres nesta data.</p>
+              )}
+
+              <div className="mt-3 flex flex-col gap-3">
+                {agruparPorTurno(horarios ?? []).map((turno) => (
+                  <div key={turno.chave}>
+                    <p className="mb-1.5 text-xs font-medium tracking-wide text-inksoft uppercase">
+                      {turno.label}
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+                      {turno.horarios.map((h) => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => setHora(h)}
+                          className={`rounded-lg py-2 text-sm ring-1 ring-border ${
+                            hora === h ? "slot-on bg-brand text-cream" : "slot-fill"
+                          }`}
+                        >
+                          {h}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
 
