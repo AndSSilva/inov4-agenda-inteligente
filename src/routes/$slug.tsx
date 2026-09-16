@@ -131,10 +131,23 @@ function AgendarPage() {
     }
   }
 
+  const GLOW =
+    "radial-gradient(1200px 520px at 82% -8%, oklch(0.803 0.137 76.8 / 35%), transparent 60%), radial-gradient(900px 480px at 8% 4%, oklch(0.678 0.151 54.3 / 18%), transparent 55%)";
+
   return (
     <div
-      className="board-bg min-h-screen bg-cream px-4 py-6 text-ink"
-      style={brandingStyle(empresa)}
+      className="min-h-screen bg-cream px-4 py-6 text-ink"
+      style={{
+        ...brandingStyle(empresa),
+        ...(empresa.logo_url
+          ? {
+              backgroundImage: `${GLOW}, linear-gradient(color-mix(in oklch, var(--cream) 93%, transparent), color-mix(in oklch, var(--cream) 93%, transparent)), url(${empresa.logo_url})`,
+              backgroundSize: "auto, auto, auto, min(70vw, 420px)",
+              backgroundPosition: "0% 0%, 0% 0%, center, center",
+              backgroundRepeat: "repeat, repeat, no-repeat, no-repeat",
+            }
+          : { backgroundImage: GLOW }),
+      }}
     >
       <div className="mx-auto w-full max-w-lg">
         <header className="mb-4">
