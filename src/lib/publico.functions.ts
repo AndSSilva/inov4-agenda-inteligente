@@ -20,6 +20,9 @@ export type EmpresaPublica = {
   hora_fim: string;
   dias_semana: number[];
   whatsapp_numero: string;
+  logo_url: string | null;
+  cor_primaria: string;
+  cor_secundaria: string;
   servicos: ServicoPublico[];
 };
 
@@ -29,7 +32,9 @@ export const getEmpresaPublica = createServerFn({ method: "GET" })
     const supabase = criarClientePublico();
     const { data: empresa } = await supabase
       .from("empresas")
-      .select("id, nome, slug, hora_inicio, hora_fim, dias_semana, whatsapp_numero")
+      .select(
+        "id, nome, slug, hora_inicio, hora_fim, dias_semana, whatsapp_numero, logo_url, cor_primaria, cor_secundaria",
+      )
       .eq("slug", data.slug)
       .maybeSingle();
     if (!empresa) return null;

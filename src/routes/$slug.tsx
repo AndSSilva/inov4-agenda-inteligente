@@ -11,6 +11,7 @@ import {
 } from "@/lib/publico.functions";
 import { NOMES_DIAS, dataLocal, moeda, somaDias } from "@/lib/tempo";
 import { linkWhatsApp, mensagemNovaReservaCliente } from "@/lib/whatsapp";
+import { brandingStyle } from "@/lib/branding";
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
@@ -131,7 +132,10 @@ function AgendarPage() {
   }
 
   return (
-    <div className="board-bg min-h-screen bg-cream px-4 py-6 text-ink">
+    <div
+      className="board-bg min-h-screen bg-cream px-4 py-6 text-ink"
+      style={brandingStyle(empresa)}
+    >
       <div className="mx-auto w-full max-w-lg">
         <header className="mb-4">
           <p className="text-xs font-medium tracking-[0.14em] text-branddeep uppercase">
@@ -165,7 +169,7 @@ function AgendarPage() {
                       setHora(null);
                       setEtapa(2);
                     }}
-                    className="flex items-center justify-between rounded-lg bg-cream/60 p-3 text-left ring-1 ring-border hover:ring-brand"
+                    className="flex items-center justify-between rounded-lg bg-cream/60 p-3 text-left ring-1 ring-border hover:ring-secondary"
                   >
                     <span>
                       <span className="block text-sm font-medium">{s.nome}</span>

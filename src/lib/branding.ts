@@ -35,6 +35,16 @@ export function contrastForeground(hex: string) {
   return luminance(hex) > 0.5 ? "#1a1614" : "#ffffff";
 }
 
+/** Escurece um hex em ~18%, pra dar um tom "deep" a partir da cor principal. */
+function darken(hex: string, fator = 0.18): string {
+  const value = expand(hex);
+  const canais = [0, 2, 4].map((offset) => {
+    const parte = Number.parseInt(value.slice(offset, offset + 2), 16);
+    return Math.max(0, Math.round(parte * (1 - fator)));
+  });
+  return `#${canais.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
 /**
  * Variáveis do design system sobrescritas com a paleta da empresa (definida
  * pelo Admin Master no cadastro). Aplicada só no cabeçalho/realce do painel
@@ -55,6 +65,7 @@ export function brandingStyle(
     ...(primary
       ? {
           ["--brand" as string]: primary,
+          ["--branddeep" as string]: darken(primary),
           ["--primary" as string]: primary,
           ["--primary-foreground" as string]: contrastForeground(primary),
           ["--ring" as string]: primary,
