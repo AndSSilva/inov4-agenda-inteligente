@@ -142,9 +142,9 @@ function AgendarPage() {
         ...(empresa.logo_url
           ? {
               backgroundImage: `${GLOW}, linear-gradient(color-mix(in oklch, var(--cream) 93%, transparent), color-mix(in oklch, var(--cream) 93%, transparent)), url(${empresa.logo_url})`,
-              backgroundSize: "auto, auto, auto, min(70vw, 420px)",
-              backgroundPosition: "0% 0%, 0% 0%, center, center",
-              backgroundRepeat: "repeat, repeat, no-repeat, no-repeat",
+              backgroundSize: "auto, auto, 110px 110px",
+              backgroundPosition: "0% 0%, 0% 0%, 0 0",
+              backgroundRepeat: "repeat, repeat, repeat",
             }
           : { backgroundImage: GLOW }),
       }}
