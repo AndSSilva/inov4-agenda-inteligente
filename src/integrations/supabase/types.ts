@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      atendimentos: {
+        Row: {
+          agendamento_id: string
+          cadastrado: boolean
+          created_at: string
+          empresa_id: string
+          entrega_confirmada: boolean
+          entrega_confirmada_em: string | null
+          etapa: Database["public"]["Enums"]["etapa_atendimento"]
+          finalizado_em: string | null
+          foto_url: string | null
+          id: string
+          iniciado_em: string
+          nascimento: string | null
+          observacao: string | null
+          pagamento_confirmado: boolean
+          pagamento_confirmado_em: string | null
+          peso: number | null
+          pet_nome: string
+          pet_tipo: Database["public"]["Enums"]["tipo_pet"] | null
+          sexo: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
+        }
+        Insert: {
+          agendamento_id: string
+          cadastrado?: boolean
+          created_at?: string
+          empresa_id: string
+          entrega_confirmada?: boolean
+          entrega_confirmada_em?: string | null
+          etapa?: Database["public"]["Enums"]["etapa_atendimento"]
+          finalizado_em?: string | null
+          foto_url?: string | null
+          id?: string
+          iniciado_em?: string
+          nascimento?: string | null
+          observacao?: string | null
+          pagamento_confirmado?: boolean
+          pagamento_confirmado_em?: string | null
+          peso?: number | null
+          pet_nome?: string
+          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
+          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+        }
+        Update: {
+          agendamento_id?: string
+          cadastrado?: boolean
+          created_at?: string
+          empresa_id?: string
+          entrega_confirmada?: boolean
+          entrega_confirmada_em?: string | null
+          etapa?: Database["public"]["Enums"]["etapa_atendimento"]
+          finalizado_em?: string | null
+          foto_url?: string | null
+          id?: string
+          iniciado_em?: string
+          nascimento?: string | null
+          observacao?: string | null
+          pagamento_confirmado?: boolean
+          pagamento_confirmado_em?: string | null
+          peso?: number | null
+          pet_nome?: string
+          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
+          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: true
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agendamentos: {
         Row: {
           cliente_id: string
@@ -346,6 +430,10 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "master"
+      etapa_atendimento: "em_atendimento" | "finalizado"
+      sexo_pet: "macho" | "femea"
+      temperamento_pet: "manso" | "bravo"
+      tipo_pet: "cachorro" | "gato" | "ave" | "roedor" | "reptil" | "outro"
       status_agendamento:
         | "pendente"
         | "confirmado"
@@ -491,6 +579,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "master"],
+      etapa_atendimento: ["em_atendimento", "finalizado"],
+      sexo_pet: ["macho", "femea"],
+      temperamento_pet: ["manso", "bravo"],
+      tipo_pet: ["cachorro", "gato", "ave", "roedor", "reptil", "outro"],
       status_agendamento: [
         "pendente",
         "confirmado",

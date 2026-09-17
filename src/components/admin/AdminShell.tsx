@@ -6,6 +6,7 @@ import {
   ExternalLink,
   LogOut,
   Settings,
+  Stethoscope,
   Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -20,6 +21,7 @@ const LINKS = [
   { to: "/admin/agendamentos", label: "Agendamentos", icon: CalendarCheck },
   { to: "/admin/cadastro", label: "Cadastro", icon: ClipboardList },
   { to: "/admin/clientes", label: "Clientes", icon: Users },
+  { to: "/admin/atendimento", label: "Atendimento", icon: Stethoscope },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
