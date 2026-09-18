@@ -130,6 +130,8 @@ export const listFichaAtendimento = createServerFn({ method: "GET" })
 
 export type Ficha = {
   id: string;
+  petId: string | null;
+  clienteId: string;
   fotoUrl: string | null;
   petNome: string;
   petTipo: string | null;
@@ -153,7 +155,7 @@ export const getFicha = createServerFn({ method: "GET" })
     const { data: row, error } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, foto_url, pet_nome, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, agendamentos(inicio, clientes(nome), servicos(nome))",
+        "id, pet_id, foto_url, pet_nome, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, agendamentos(inicio, cliente_id, clientes(nome), servicos(nome))",
       )
       .eq("id", data.id)
       .eq("empresa_id", empresaId)
@@ -162,6 +164,8 @@ export const getFicha = createServerFn({ method: "GET" })
 
     return {
       id: row.id,
+      petId: row.pet_id,
+      clienteId: (row as any).agendamentos?.cliente_id ?? "",
       fotoUrl: row.foto_url,
       petNome: row.pet_nome ?? "",
       petTipo: row.pet_tipo,
@@ -177,6 +181,50 @@ export const getFicha = createServerFn({ method: "GET" })
     };
   });
 
+export type PetResumo = {
+  id: string;
+  nome: string;
+  tipo: string | null;
+  sexo: string | null;
+  nascimento: string | null;
+  peso: number | null;
+  cadastrado: boolean;
+  temperamento: string | null;
+  observacao: string | null;
+  fotoUrl: string | null;
+};
+
+/** Pets já cadastrados pra esse cliente (mesmo telefone) — pra decidir se é o mesmo animal ou outro. */
+export const listPetsDoCliente = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ clienteId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<PetResumo[]> => {
+    const ctx = context as unknown as Ctx;
+    const empresaId = await empresaIdDoUsuario(ctx);
+    const { data: rows, error } = await ctx.supabase
+      .from("pets")
+      .select(
+        "id, nome, tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, foto_url",
+      )
+      .eq("cliente_id", data.clienteId)
+      .eq("empresa_id", empresaId)
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((p: any) => ({
+      id: p.id,
+      nome: p.nome,
+      tipo: p.tipo,
+      sexo: p.sexo,
+      nascimento: p.nascimento,
+      peso: p.peso === null ? null : Number(p.peso),
+      cadastrado: p.cadastrado,
+      temperamento: p.temperamento,
+      observacao: p.observacao,
+      fotoUrl: p.foto_url,
+    }));
+  });
+
 const TIPOS_PET = ["cachorro", "gato", "ave", "roedor", "reptil", "outro"] as const;
 
 export const salvarFicha = createServerFn({ method: "POST" })
@@ -185,6 +233,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid(),
+        petId: z.string().uuid().nullable(),
         petNome: z.string().trim().min(1).max(80),
         petTipo: z.enum(TIPOS_PET).nullable(),
         sexo: z.enum(["macho", "femea"]).nullable(),
@@ -208,6 +257,15 @@ export const salvarFicha = createServerFn({ method: "POST" })
     const ctx = context as unknown as Ctx;
     const empresaId = await empresaIdDoUsuario(ctx);
 
+    const { data: atendimentoAtual, error: erroAtual } = await ctx.supabase
+      .from("atendimentos")
+      .select("agendamentos(cliente_id)")
+      .eq("id", data.id)
+      .eq("empresa_id", empresaId)
+      .single();
+    if (erroAtual || !atendimentoAtual) throw new Error("Atendimento não encontrado.");
+    const clienteId = (atendimentoAtual as any).agendamentos?.cliente_id as string;
+
     let fotoUrl: string | null = null;
     if (data.foto) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -223,9 +281,42 @@ export const salvarFicha = createServerFn({ method: "POST" })
       fotoUrl = signed?.signedUrl ?? null;
     }
 
+    const dadosPet = {
+      empresa_id: empresaId,
+      cliente_id: clienteId,
+      nome: data.petNome,
+      tipo: data.petTipo,
+      sexo: data.sexo,
+      nascimento: data.nascimento || null,
+      peso: data.peso,
+      cadastrado: data.cadastrado,
+      temperamento: data.temperamento,
+      observacao: data.observacao || null,
+      updated_at: new Date().toISOString(),
+      ...(fotoUrl ? { foto_url: fotoUrl } : {}),
+    };
+
+    // Atualiza o perfil canônico do pet (o mesmo animal escolhido, ou um
+    // novo perfil se for a primeira visita dele / outro animal).
+    let petId = data.petId;
+    if (petId) {
+      const { error: erroPet } = await ctx.supabase.from("pets").update(dadosPet).eq("id", petId);
+      if (erroPet) throw new Error(erroPet.message);
+    } else {
+      const { data: criado, error: erroPet } = await ctx.supabase
+        .from("pets")
+        .insert(dadosPet)
+        .select("id")
+        .single();
+      if (erroPet || !criado)
+        throw new Error(erroPet?.message ?? "Falha ao criar o perfil do pet.");
+      petId = criado.id;
+    }
+
     const { error } = await ctx.supabase
       .from("atendimentos")
       .update({
+        pet_id: petId,
         pet_nome: data.petNome,
         pet_tipo: data.petTipo,
         sexo: data.sexo,
@@ -242,6 +333,42 @@ export const salvarFicha = createServerFn({ method: "POST" })
       .eq("empresa_id", empresaId);
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+export type ItemHistorico = {
+  id: string;
+  petNome: string;
+  clienteNome: string;
+  servicoNome: string;
+  finalizadoEm: string | null;
+  entregaConfirmada: boolean;
+};
+
+/** Todas as fichas já finalizadas (independente de já terem saído da Sala ou não). */
+export const listHistorico = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ItemHistorico[]> => {
+    const ctx = context as unknown as Ctx;
+    const empresaId = await empresaIdDoUsuario(ctx);
+    const { data: rows, error } = await ctx.supabase
+      .from("atendimentos")
+      .select(
+        "id, pet_nome, entrega_confirmada, finalizado_em, agendamentos(clientes(nome), servicos(nome))",
+      )
+      .eq("empresa_id", empresaId)
+      .eq("etapa", "finalizado")
+      .order("finalizado_em", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((row: any) => ({
+      id: row.id,
+      petNome: row.pet_nome || "Pet sem nome",
+      clienteNome: row.agendamentos?.clientes?.nome ?? "—",
+      servicoNome: row.agendamentos?.servicos?.nome ?? "—",
+      finalizadoEm: row.finalizado_em,
+      entregaConfirmada: row.entrega_confirmada,
+    }));
   });
 
 export type ItemSala = {

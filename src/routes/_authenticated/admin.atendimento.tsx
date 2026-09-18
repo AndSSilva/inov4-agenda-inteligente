@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   DoorOpen,
+  PawPrint,
   PlayCircle,
   Stethoscope,
 } from "lucide-react";
@@ -41,10 +42,13 @@ import {
   getFicha,
   iniciarAtendimento,
   listFichaAtendimento,
+  listHistorico,
+  listPetsDoCliente,
   listSala,
   listTriagem,
   salvarFicha,
   type ItemTriagem,
+  type PetResumo,
 } from "@/lib/atendimento.functions";
 import { ROTULO_STATUS, dataCurta, horaLocal, moeda } from "@/lib/tempo";
 
@@ -80,6 +84,7 @@ function AtendimentoPage() {
           <TabsTrigger value="triagem">Triagem</TabsTrigger>
           <TabsTrigger value="ficha">Ficha de atendimento</TabsTrigger>
           <TabsTrigger value="sala">Sala</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="triagem" className="mt-4">
@@ -90,6 +95,9 @@ function AtendimentoPage() {
         </TabsContent>
         <TabsContent value="sala" className="mt-4">
           <SalaTab />
+        </TabsContent>
+        <TabsContent value="historico" className="mt-4">
+          <HistoricoTab />
         </TabsContent>
       </Tabs>
     </AdminShell>
@@ -251,6 +259,7 @@ function FichaDialog({
 }) {
   const carregar = useServerFn(getFicha);
   const salvar = useServerFn(salvarFicha);
+  const carregarPets = useServerFn(listPetsDoCliente);
   const { data: ficha, isLoading } = useQuery({
     queryKey: ["ficha", id],
     queryFn: () => carregar({ data: { id: id! } }),
@@ -268,6 +277,43 @@ function FichaDialog({
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [petIdEscolhido, setPetIdEscolhido] = useState<string | null>(null);
+  const [escolhaFeita, setEscolhaFeita] = useState(false);
+
+  const { data: petsDoCliente, isLoading: carregandoPets } = useQuery({
+    queryKey: ["pets-cliente", ficha?.clienteId],
+    queryFn: () => carregarPets({ data: { clienteId: ficha!.clienteId } }),
+    enabled: Boolean(ficha && !ficha.petId),
+  });
+
+  // Reseta o passo de escolha sempre que abre uma ficha diferente.
+  useEffect(() => {
+    setEscolhaFeita(false);
+    setPetIdEscolhido(null);
+  }, [id]);
+
+  const precisaEscolher = Boolean(
+    ficha && !ficha.petId && !escolhaFeita && (petsDoCliente ?? []).length > 0,
+  );
+
+  function escolherPet(pet: PetResumo) {
+    setPetNome(pet.nome);
+    setPetTipo(pet.tipo);
+    setSexo(pet.sexo);
+    setNascimento(pet.nascimento ?? "");
+    setPeso(pet.peso === null ? "" : String(pet.peso));
+    setCadastrado(pet.cadastrado);
+    setTemperamento(pet.temperamento);
+    setObservacao(pet.observacao ?? "");
+    setFotoPreview(pet.fotoUrl);
+    setPetIdEscolhido(pet.id);
+    setEscolhaFeita(true);
+  }
+
+  function escolherOutroAnimal() {
+    setPetIdEscolhido(null);
+    setEscolhaFeita(true);
+  }
 
   useEffect(() => {
     if (!ficha) return;
@@ -281,6 +327,10 @@ function FichaDialog({
     setObservacao(ficha.observacao ?? "");
     setFotoFile(null);
     setFotoPreview(ficha.fotoUrl);
+    if (ficha.petId) {
+      setPetIdEscolhido(ficha.petId);
+      setEscolhaFeita(true);
+    }
   }, [ficha]);
 
   async function codificarFoto(file: File) {
@@ -310,6 +360,7 @@ function FichaDialog({
       await salvar({
         data: {
           id,
+          petId: petIdEscolhido,
           petNome: petNome.trim(),
           petTipo: petTipo as "cachorro" | "gato" | "ave" | "roedor" | "reptil" | "outro" | null,
           sexo: sexo as "macho" | "femea" | null,
@@ -341,8 +392,79 @@ function FichaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
+        {isLoading || (ficha && !ficha.petId && carregandoPets) ? (
           <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : precisaEscolher ? (
+          <div className="flex flex-col gap-3">
+            {(petsDoCliente ?? []).length === 1 ? (
+              <p className="text-sm text-muted-foreground">
+                {ficha?.clienteNome} já tem um pet cadastrado. É o mesmo animal desta visita?
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {ficha?.clienteNome} já tem {(petsDoCliente ?? []).length} pets cadastrados.
+                Selecione um, ou cadastre um novo.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {(petsDoCliente ?? []).map((pet) => (
+                <button
+                  key={pet.id}
+                  type="button"
+                  onClick={() => escolherPet(pet)}
+                  className="flex items-center gap-3 rounded-xl border border-border p-3 text-left hover:bg-accent"
+                >
+                  {pet.fotoUrl ? (
+                    <img
+                      src={pet.fotoUrl}
+                      alt={pet.nome}
+                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                      <PawPrint className="h-5 w-5" aria-hidden />
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{pet.nome || "Sem nome"}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {pet.tipo ? TIPO_PET_LABELS[pet.tipo] : "Tipo não informado"}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {(petsDoCliente ?? []).length === 1 ? (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  className="h-11 flex-1 rounded-full"
+                  onClick={() => escolherPet((petsDoCliente ?? [])[0]!)}
+                >
+                  Sim, é o mesmo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 flex-1 rounded-full"
+                  onClick={escolherOutroAnimal}
+                >
+                  Não, é outro animal
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-full"
+                onClick={escolherOutroAnimal}
+              >
+                Cadastrar outro animal
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col items-center gap-2">
@@ -497,14 +619,16 @@ function FichaDialog({
           <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            type="button"
-            className="h-12 rounded-full px-6"
-            disabled={salvando || isLoading}
-            onClick={salvarClick}
-          >
-            {salvando ? "Salvando..." : "Salvar e finalizar"}
-          </Button>
+          {!precisaEscolher && (
+            <Button
+              type="button"
+              className="h-12 rounded-full px-6"
+              disabled={salvando || isLoading}
+              onClick={salvarClick}
+            >
+              {salvando ? "Salvando..." : "Salvar e finalizar"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -650,6 +774,143 @@ function CheckoutAcoes({
           Confirme o pagamento antes de liberar a entrega.
         </p>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Histórico
+// ---------------------------------------------------------------------------
+
+function HistoricoTab() {
+  const carregar = useServerFn(listHistorico);
+  const [abertoId, setAbertoId] = useState<string | null>(null);
+  const { data, isLoading } = useQuery({ queryKey: ["historico"], queryFn: () => carregar() });
+
+  return (
+    <div className="flex flex-col gap-4">
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+
+      {!isLoading && (data ?? []).length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          Nenhuma ficha finalizada ainda.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {(data ?? []).map((i) => (
+            <li
+              key={i.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-bold">{i.petNome}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {i.clienteNome} · {i.servicoNome}
+                  {i.finalizadoEm
+                    ? ` · ${dataCurta(i.finalizadoEm)} ${horaLocal(i.finalizadoEm)}`
+                    : ""}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="h-10 rounded-full"
+                onClick={() => setAbertoId(i.id)}
+              >
+                Ver ficha
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <HistoricoDetalheDialog id={abertoId} onClose={() => setAbertoId(null)} />
+    </div>
+  );
+}
+
+function HistoricoDetalheDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
+  const carregar = useServerFn(getFicha);
+  const { data: ficha, isLoading } = useQuery({
+    queryKey: ["ficha", id],
+    queryFn: () => carregar({ data: { id: id! } }),
+    enabled: Boolean(id),
+  });
+
+  return (
+    <Dialog open={Boolean(id)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Ficha de atendimento</DialogTitle>
+          <DialogDescription>
+            {ficha ? `${ficha.clienteNome} · ${ficha.servicoNome}` : "Carregando..."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading || !ficha ? (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-center">
+              {ficha.fotoUrl ? (
+                <img
+                  src={ficha.fotoUrl}
+                  alt={`Foto de ${ficha.petNome}`}
+                  className="h-32 w-32 rounded-2xl object-cover ring-1 ring-border"
+                />
+              ) : (
+                <span className="grid h-32 w-32 place-items-center rounded-2xl bg-muted text-muted-foreground">
+                  <Camera className="h-8 w-8" aria-hidden />
+                </span>
+              )}
+            </div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <Campo label="Nome do pet" valor={ficha.petNome} />
+              <Campo
+                label="Tipo"
+                valor={ficha.petTipo ? (TIPO_PET_LABELS[ficha.petTipo] ?? "—") : "—"}
+              />
+              <Campo
+                label="Sexo"
+                valor={ficha.sexo === "macho" ? "Macho" : ficha.sexo === "femea" ? "Fêmea" : "—"}
+              />
+              <Campo label="Nascimento" valor={ficha.nascimento ?? "—"} />
+              <Campo label="Peso" valor={ficha.peso === null ? "—" : `${ficha.peso} kg`} />
+              <Campo label="Cadastrado" valor={ficha.cadastrado ? "Sim" : "Não"} />
+              <Campo
+                label="Temperamento"
+                valor={
+                  ficha.temperamento === "manso"
+                    ? "Manso"
+                    : ficha.temperamento === "bravo"
+                      ? "Bravo"
+                      : "—"
+                }
+              />
+            </dl>
+            {ficha.observacao && (
+              <div>
+                <dt className="text-xs text-muted-foreground">Observação</dt>
+                <dd className="text-sm">{ficha.observacao}</dd>
+              </div>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" className="h-12 rounded-full" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Campo({ label, valor }: { label: string; valor: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium">{valor}</dd>
     </div>
   );
 }
