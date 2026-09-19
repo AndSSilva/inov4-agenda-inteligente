@@ -31,9 +31,11 @@ export type ItemTriagem = {
   clienteTelefone: string;
   petNome: string | null;
   servicoNome: string;
+  atendimentoId: string | null;
+  etapaAtendimento: string | null;
 };
 
-function mapTriagem(row: any): ItemTriagem {
+function mapTriagem(row: any, atendimento: { id: string; etapa: string } | undefined): ItemTriagem {
   return {
     agendamentoId: row.id,
     inicio: row.inicio,
@@ -42,10 +44,15 @@ function mapTriagem(row: any): ItemTriagem {
     clienteTelefone: row.clientes?.telefone ?? "",
     petNome: row.clientes?.filiacao ?? null,
     servicoNome: row.servicos?.nome ?? "—",
+    atendimentoId: atendimento?.id ?? null,
+    etapaAtendimento: atendimento?.etapa ?? null,
   };
 }
 
-/** Agendamentos que ainda não têm atendimento iniciado. */
+/**
+ * Traz todos os agendamentos recentes — inclusive os que já têm atendimento
+ * iniciado, marcados como tal, pra dar pra filtrar e reabrir se precisar.
+ */
 export const listTriagem = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ItemTriagem[]> => {
@@ -54,9 +61,11 @@ export const listTriagem = createServerFn({ method: "GET" })
 
     const { data: iniciados } = await ctx.supabase
       .from("atendimentos")
-      .select("agendamento_id")
+      .select("id, agendamento_id, etapa")
       .eq("empresa_id", empresaId);
-    const idsIniciados = new Set((iniciados ?? []).map((a: any) => a.agendamento_id));
+    const porAgendamento = new Map<string, { id: string; etapa: string }>(
+      (iniciados ?? []).map((a: any) => [a.agendamento_id, { id: a.id, etapa: a.etapa }]),
+    );
 
     const { data: rows, error } = await ctx.supabase
       .from("agendamentos")
@@ -66,7 +75,7 @@ export const listTriagem = createServerFn({ method: "GET" })
       .limit(300);
     if (error) throw new Error(error.message);
 
-    return (rows ?? []).filter((row: any) => !idsIniciados.has(row.id)).map(mapTriagem);
+    return (rows ?? []).map((row: any) => mapTriagem(row, porAgendamento.get(row.id)));
   });
 
 export const iniciarAtendimento = createServerFn({ method: "POST" })
@@ -84,13 +93,17 @@ export const iniciarAtendimento = createServerFn({ method: "POST" })
       .single();
     if (erroAgendamento || !agendamento) throw new Error("Agendamento não encontrado.");
 
-    const { error } = await ctx.supabase.from("atendimentos").insert({
-      agendamento_id: data.agendamentoId,
-      empresa_id: empresaId,
-      pet_nome: (agendamento as any).clientes?.filiacao ?? "",
-    });
-    if (error) throw new Error(error.message);
-    return { ok: true as const };
+    const { data: criado, error } = await ctx.supabase
+      .from("atendimentos")
+      .insert({
+        agendamento_id: data.agendamentoId,
+        empresa_id: empresaId,
+        pet_nome: (agendamento as any).clientes?.filiacao ?? "",
+      })
+      .select("id")
+      .single();
+    if (error || !criado) throw new Error(error?.message ?? "Falha ao iniciar o atendimento.");
+    return { ok: true as const, atendimentoId: criado.id as string };
   });
 
 export type ItemFicha = {

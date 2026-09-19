@@ -77,9 +77,12 @@ const TIPO_PET_LABELS: Record<string, string> = {
 };
 
 function AtendimentoPage() {
+  const [aba, setAba] = useState("triagem");
+  const [pendingFichaId, setPendingFichaId] = useState<string | null>(null);
+
   return (
     <AdminShell title="Atendimento">
-      <Tabs defaultValue="triagem">
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
           <TabsTrigger value="triagem">Triagem</TabsTrigger>
           <TabsTrigger value="ficha">Ficha de atendimento</TabsTrigger>
@@ -88,10 +91,18 @@ function AtendimentoPage() {
         </TabsList>
 
         <TabsContent value="triagem" className="mt-4">
-          <TriagemTab />
+          <TriagemTab
+            onAbrirFicha={(atendimentoId) => {
+              setPendingFichaId(atendimentoId);
+              setAba("ficha");
+            }}
+          />
         </TabsContent>
         <TabsContent value="ficha" className="mt-4">
-          <FichaTab />
+          <FichaTab
+            pendingAbrirId={pendingFichaId}
+            onPendingConsumido={() => setPendingFichaId(null)}
+          />
         </TabsContent>
         <TabsContent value="sala" className="mt-4">
           <SalaTab />
@@ -108,29 +119,33 @@ function AtendimentoPage() {
 // Triagem
 // ---------------------------------------------------------------------------
 
-function TriagemTab() {
+function TriagemTab({ onAbrirFicha }: { onAbrirFicha: (atendimentoId: string) => void }) {
   const carregar = useServerFn(listTriagem);
   const iniciar = useServerFn(iniciarAtendimento);
   const qc = useQueryClient();
   const [filtro, setFiltro] = useState<string>("todos");
+  const [mostrarIniciados, setMostrarIniciados] = useState(false);
 
   const { data, isLoading } = useQuery({ queryKey: ["triagem"], queryFn: () => carregar() });
 
   const mIniciar = useMutation({
     mutationFn: (agendamentoId: string) => iniciar({ data: { agendamentoId } }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.success("Atendimento iniciado");
       qc.invalidateQueries({ queryKey: ["triagem"] });
       qc.invalidateQueries({ queryKey: ["ficha-lista"] });
+      onAbrirFicha(res.atendimentoId);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const itens = (data ?? []).filter((i: ItemTriagem) => filtro === "todos" || i.status === filtro);
+  const itens = (data ?? [])
+    .filter((i: ItemTriagem) => filtro === "todos" || i.status === filtro)
+    .filter((i: ItemTriagem) => mostrarIniciados || i.atendimentoId === null);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Label htmlFor="triagem-filtro" className="shrink-0 text-sm">
           Status
         </Label>
@@ -147,6 +162,11 @@ function TriagemTab() {
             ))}
           </SelectContent>
         </Select>
+
+        <label className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
+          <Switch checked={mostrarIniciados} onCheckedChange={setMostrarIniciados} />
+          Mostrar já iniciados
+        </label>
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
@@ -168,6 +188,11 @@ function TriagemTab() {
                     {dataCurta(item.inicio)} · {horaLocal(item.inicio)}
                   </span>
                   <StatusTag status={item.status} />
+                  {item.etapaAtendimento && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      {item.etapaAtendimento === "finalizado" ? "Finalizado" : "Em atendimento"}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 truncate text-sm font-medium">{item.servicoNome}</p>
                 <p className="truncate text-xs text-muted-foreground">
@@ -175,14 +200,25 @@ function TriagemTab() {
                   {item.petNome ? ` · ${item.petNome}` : ""}
                 </p>
               </div>
-              <Button
-                className="h-10 rounded-full"
-                disabled={mIniciar.isPending}
-                onClick={() => mIniciar.mutate(item.agendamentoId)}
-              >
-                <PlayCircle className="mr-1 h-4 w-4" aria-hidden />
-                Iniciar atendimento
-              </Button>
+              {item.atendimentoId ? (
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-full"
+                  onClick={() => onAbrirFicha(item.atendimentoId!)}
+                >
+                  <ClipboardCheck className="mr-1 h-4 w-4" aria-hidden />
+                  Ver ficha
+                </Button>
+              ) : (
+                <Button
+                  className="h-10 rounded-full"
+                  disabled={mIniciar.isPending}
+                  onClick={() => mIniciar.mutate(item.agendamentoId)}
+                >
+                  <PlayCircle className="mr-1 h-4 w-4" aria-hidden />
+                  Iniciar atendimento
+                </Button>
+              )}
             </li>
           ))}
         </ul>
@@ -195,11 +231,23 @@ function TriagemTab() {
 // Ficha de atendimento
 // ---------------------------------------------------------------------------
 
-function FichaTab() {
+function FichaTab({
+  pendingAbrirId,
+  onPendingConsumido,
+}: {
+  pendingAbrirId: string | null;
+  onPendingConsumido: () => void;
+}) {
   const carregar = useServerFn(listFichaAtendimento);
   const qc = useQueryClient();
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ["ficha-lista"], queryFn: () => carregar() });
+
+  useEffect(() => {
+    if (!pendingAbrirId) return;
+    setAbertoId(pendingAbrirId);
+    onPendingConsumido();
+  }, [pendingAbrirId, onPendingConsumido]);
 
   return (
     <div className="flex flex-col gap-4">
