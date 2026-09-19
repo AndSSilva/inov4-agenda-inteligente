@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { dataLocal, isoLocal } from "./tempo";
+import { diaSemanaLocal, isoLocal, somaDias } from "./tempo";
 
 export type Empresa = {
   id: string;
@@ -111,36 +111,35 @@ export const getEmpresa = createServerFn({ method: "GET" })
 
 export const getDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        fim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
     const ctx = context as unknown as Ctx;
     const empresa = await empresaDoUsuario(ctx);
-    const hoje = dataLocal(new Date());
-    const inicioDia = new Date(isoLocal(hoje, "00:00")).toISOString();
-    const fimDia = new Date(new Date(inicioDia).getTime() + 86_400_000).toISOString();
+    const inicioPeriodo = new Date(isoLocal(data.inicio, "00:00")).toISOString();
+    const fimPeriodo = new Date(isoLocal(somaDias(data.fim, 1), "00:00")).toISOString();
 
-    const { data: doDia } = await ctx.supabase
+    const { data: doPeriodo } = await ctx.supabase
       .from("agendamentos")
       .select(SELECT_AGENDAMENTO)
       .eq("empresa_id", empresa.id)
-      .gte("inicio", inicioDia)
-      .lt("inicio", fimDia)
-      .order("inicio", { ascending: true });
-
-    const { data: proximos } = await ctx.supabase
-      .from("agendamentos")
-      .select(SELECT_AGENDAMENTO)
-      .eq("empresa_id", empresa.id)
-      .gte("inicio", new Date().toISOString())
-      .neq("status", "cancelado")
+      .gte("inicio", inicioPeriodo)
+      .lt("inicio", fimPeriodo)
       .order("inicio", { ascending: true })
-      .limit(6);
+      .limit(500);
 
     const { count: totalClientes } = await ctx.supabase
       .from("clientes")
       .select("id", { count: "exact", head: true })
       .eq("empresa_id", empresa.id);
 
-    const lista: AgendamentoItem[] = (doDia ?? []).map(mapAgendamento);
+    const lista: AgendamentoItem[] = (doPeriodo ?? []).map(mapAgendamento);
     const validos = lista.filter((a) => a.status !== "cancelado");
     const confirmados = lista.filter(
       (a) => a.status === "confirmado" || a.status === "concluido",
@@ -152,18 +151,31 @@ export const getDashboard = createServerFn({ method: "GET" })
     );
     const [hi, mi] = empresa.hora_inicio.split(":").map(Number);
     const [hf, mf] = empresa.hora_fim.split(":").map(Number);
-    const capacidade = Math.max(1, (hf ?? 18) * 60 + (mf ?? 0) - ((hi ?? 9) * 60 + (mi ?? 0)));
+    const capacidadeDia = Math.max(1, (hf ?? 18) * 60 + (mf ?? 0) - ((hi ?? 9) * 60 + (mi ?? 0)));
+
+    // Capacidade do período = capacidade de um dia × dias de atendimento no
+    // intervalo (considerando os dias da semana em que a empresa funciona).
+    let diasDeAtendimento = 0;
+    let cursor = data.inicio;
+    let protecao = 0;
+    while (cursor <= data.fim && protecao < 2000) {
+      if (empresa.dias_semana.includes(diaSemanaLocal(cursor))) diasDeAtendimento++;
+      cursor = somaDias(cursor, 1);
+      protecao++;
+    }
+    const capacidadePeriodo = capacidadeDia * Math.max(1, diasDeAtendimento);
 
     return {
       empresa,
+      periodo: { inicio: data.inicio, fim: data.fim },
       metricas: {
         agendados: validos.length,
         confirmados,
         receita,
-        ocupacao: Math.min(100, Math.round((minutosOcupados / capacidade) * 100)),
+        ocupacao: Math.min(100, Math.round((minutosOcupados / capacidadePeriodo) * 100)),
         totalClientes: totalClientes ?? 0,
       },
-      proximos: (proximos ?? []).map(mapAgendamento) as AgendamentoItem[],
+      agendamentosNoPeriodo: lista.slice(0, 50),
     };
   });
 
