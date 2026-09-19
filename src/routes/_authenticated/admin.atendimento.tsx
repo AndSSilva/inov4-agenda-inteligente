@@ -15,6 +15,12 @@ import { toast } from "sonner";
 
 import { AdminShell } from "@/components/admin/AdminShell";
 import { StatusTag } from "@/components/StatusTag";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,6 +49,7 @@ import {
   iniciarAtendimento,
   listFichaAtendimento,
   listHistorico,
+  listHistoricoPet,
   listPetsDoCliente,
   listSala,
   listTriagem,
@@ -691,6 +698,7 @@ function SalaTab() {
   const carregar = useServerFn(listSala);
   const qc = useQueryClient();
   const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [petHistoricoId, setPetHistoricoId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ["sala"], queryFn: () => carregar() });
 
   const item = (data ?? []).find((i) => i.id === abertoId) ?? null;
@@ -711,7 +719,17 @@ function SalaTab() {
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
             >
               <div className="min-w-0">
-                <p className="text-sm font-bold">{i.petNome}</p>
+                {i.petId ? (
+                  <button
+                    type="button"
+                    className="text-sm font-bold underline-offset-2 hover:underline"
+                    onClick={() => setPetHistoricoId(i.petId)}
+                  >
+                    {i.petNome}
+                  </button>
+                ) : (
+                  <p className="text-sm font-bold">{i.petNome}</p>
+                )}
                 <p className="truncate text-xs text-muted-foreground">
                   {i.clienteNome} · {i.servicoNome} · {moeda(i.servicoPreco)}
                 </p>
@@ -735,6 +753,8 @@ function SalaTab() {
           ))}
         </ul>
       )}
+
+      <PetHistoricoDialog petId={petHistoricoId} onClose={() => setPetHistoricoId(null)} />
 
       <Dialog open={Boolean(item)} onOpenChange={(open) => (!open ? setAbertoId(null) : undefined)}>
         <DialogContent>
@@ -833,6 +853,7 @@ function CheckoutAcoes({
 function HistoricoTab() {
   const carregar = useServerFn(listHistorico);
   const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [petHistoricoId, setPetHistoricoId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ["historico"], queryFn: () => carregar() });
 
   return (
@@ -851,7 +872,17 @@ function HistoricoTab() {
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
             >
               <div className="min-w-0">
-                <p className="text-sm font-bold">{i.petNome}</p>
+                {i.petId ? (
+                  <button
+                    type="button"
+                    className="text-sm font-bold underline-offset-2 hover:underline"
+                    onClick={() => setPetHistoricoId(i.petId)}
+                  >
+                    {i.petNome}
+                  </button>
+                ) : (
+                  <p className="text-sm font-bold">{i.petNome}</p>
+                )}
                 <p className="truncate text-xs text-muted-foreground">
                   {i.clienteNome} · {i.servicoNome}
                   {i.finalizadoEm
@@ -871,6 +902,7 @@ function HistoricoTab() {
         </ul>
       )}
 
+      <PetHistoricoDialog petId={petHistoricoId} onClose={() => setPetHistoricoId(null)} />
       <HistoricoDetalheDialog id={abertoId} onClose={() => setAbertoId(null)} />
     </div>
   );
@@ -960,5 +992,139 @@ function Campo({ label, valor }: { label: string; valor: string }) {
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium">{valor}</dd>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Histórico do pet (todas as fichas dele, numa visualização só)
+// ---------------------------------------------------------------------------
+
+function PetHistoricoDialog({ petId, onClose }: { petId: string | null; onClose: () => void }) {
+  const carregar = useServerFn(listHistoricoPet);
+  const { data, isLoading } = useQuery({
+    queryKey: ["historico-pet", petId],
+    queryFn: () => carregar({ data: { petId: petId! } }),
+    enabled: Boolean(petId),
+  });
+
+  return (
+    <Dialog open={Boolean(petId)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{data ? data.pet.nome || "Pet sem nome" : "Histórico do pet"}</DialogTitle>
+          <DialogDescription>
+            {data
+              ? `${data.visitas.length} ${data.visitas.length === 1 ? "ficha" : "fichas"} registradas`
+              : "Carregando..."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading || !data ? (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+              {data.pet.fotoUrl ? (
+                <img
+                  src={data.pet.fotoUrl}
+                  alt={data.pet.nome}
+                  className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                />
+              ) : (
+                <span className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+                  <PawPrint className="h-6 w-6" aria-hidden />
+                </span>
+              )}
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                <Campo
+                  label="Tipo"
+                  valor={data.pet.tipo ? (TIPO_PET_LABELS[data.pet.tipo] ?? "—") : "—"}
+                />
+                <Campo
+                  label="Sexo"
+                  valor={
+                    data.pet.sexo === "macho" ? "Macho" : data.pet.sexo === "femea" ? "Fêmea" : "—"
+                  }
+                />
+                <Campo label="Nascimento" valor={data.pet.nascimento ?? "—"} />
+                <Campo
+                  label="Temperamento"
+                  valor={
+                    data.pet.temperamento === "manso"
+                      ? "Manso"
+                      : data.pet.temperamento === "bravo"
+                        ? "Bravo"
+                        : "—"
+                  }
+                />
+              </dl>
+            </div>
+
+            {data.visitas.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma ficha registrada ainda.</p>
+            ) : (
+              <Accordion type="multiple" className="flex flex-col gap-2">
+                {data.visitas.map((v) => (
+                  <AccordionItem
+                    key={v.atendimentoId}
+                    value={v.atendimentoId}
+                    className="rounded-xl border border-border px-3"
+                  >
+                    <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                      <span className="flex flex-col items-start text-left">
+                        <span className="font-medium">
+                          {v.inicio
+                            ? `${dataCurta(v.inicio)} · ${horaLocal(v.inicio)}`
+                            : "Data não informada"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{v.servicoNome}</span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="flex flex-col gap-3 pb-2">
+                        {v.fotoUrl && (
+                          <img
+                            src={v.fotoUrl}
+                            alt={`Foto da visita de ${dataCurta(v.inicio)}`}
+                            className="h-24 w-24 rounded-xl object-cover ring-1 ring-border"
+                          />
+                        )}
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                          <Campo label="Peso" valor={v.peso === null ? "—" : `${v.peso} kg`} />
+                          <Campo label="Cadastrado" valor={v.cadastrado ? "Sim" : "Não"} />
+                          <Campo
+                            label="Temperamento"
+                            valor={
+                              v.temperamento === "manso"
+                                ? "Manso"
+                                : v.temperamento === "bravo"
+                                  ? "Bravo"
+                                  : "—"
+                            }
+                          />
+                          <Campo label="Cliente" valor={v.clienteNome} />
+                        </dl>
+                        {v.observacao && (
+                          <div>
+                            <dt className="text-xs text-muted-foreground">Observação</dt>
+                            <dd className="text-sm">{v.observacao}</dd>
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" className="h-12 rounded-full" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

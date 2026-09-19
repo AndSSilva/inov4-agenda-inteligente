@@ -350,6 +350,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
 
 export type ItemHistorico = {
   id: string;
+  petId: string | null;
   petNome: string;
   clienteNome: string;
   servicoNome: string;
@@ -366,7 +367,7 @@ export const listHistorico = createServerFn({ method: "GET" })
     const { data: rows, error } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, pet_nome, entrega_confirmada, finalizado_em, agendamentos(clientes(nome), servicos(nome))",
+        "id, pet_id, pet_nome, entrega_confirmada, finalizado_em, agendamentos(clientes(nome), servicos(nome))",
       )
       .eq("empresa_id", empresaId)
       .eq("etapa", "finalizado")
@@ -376,6 +377,7 @@ export const listHistorico = createServerFn({ method: "GET" })
 
     return (rows ?? []).map((row: any) => ({
       id: row.id,
+      petId: row.pet_id,
       petNome: row.pet_nome || "Pet sem nome",
       clienteNome: row.agendamentos?.clientes?.nome ?? "—",
       servicoNome: row.agendamentos?.servicos?.nome ?? "—",
@@ -384,8 +386,89 @@ export const listHistorico = createServerFn({ method: "GET" })
     }));
   });
 
+export type VisitaPet = {
+  atendimentoId: string;
+  inicio: string;
+  finalizadoEm: string | null;
+  servicoNome: string;
+  clienteNome: string;
+  fotoUrl: string | null;
+  petTipo: string | null;
+  sexo: string | null;
+  nascimento: string | null;
+  peso: number | null;
+  cadastrado: boolean;
+  temperamento: string | null;
+  observacao: string | null;
+};
+
+export type HistoricoPet = {
+  pet: PetResumo;
+  visitas: VisitaPet[];
+};
+
+/** Cadastro atual do pet + todas as visitas (fichas) já vinculadas a ele, mais recente primeiro. */
+export const listHistoricoPet = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ petId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<HistoricoPet> => {
+    const ctx = context as unknown as Ctx;
+    const empresaId = await empresaIdDoUsuario(ctx);
+
+    const { data: pet, error: erroPet } = await ctx.supabase
+      .from("pets")
+      .select(
+        "id, nome, tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, foto_url",
+      )
+      .eq("id", data.petId)
+      .eq("empresa_id", empresaId)
+      .single();
+    if (erroPet || !pet) throw new Error("Pet não encontrado.");
+
+    const { data: visitas, error: erroVisitas } = await ctx.supabase
+      .from("atendimentos")
+      .select(
+        "id, foto_url, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, finalizado_em, agendamentos(inicio, clientes(nome), servicos(nome))",
+      )
+      .eq("pet_id", data.petId)
+      .eq("empresa_id", empresaId)
+      .order("finalizado_em", { ascending: false });
+    if (erroVisitas) throw new Error(erroVisitas.message);
+
+    return {
+      pet: {
+        id: pet.id,
+        nome: pet.nome,
+        tipo: pet.tipo,
+        sexo: pet.sexo,
+        nascimento: pet.nascimento,
+        peso: pet.peso === null ? null : Number(pet.peso),
+        cadastrado: pet.cadastrado,
+        temperamento: pet.temperamento,
+        observacao: pet.observacao,
+        fotoUrl: pet.foto_url,
+      },
+      visitas: (visitas ?? []).map((v: any) => ({
+        atendimentoId: v.id,
+        inicio: v.agendamentos?.inicio ?? "",
+        finalizadoEm: v.finalizado_em,
+        servicoNome: v.agendamentos?.servicos?.nome ?? "—",
+        clienteNome: v.agendamentos?.clientes?.nome ?? "—",
+        fotoUrl: v.foto_url,
+        petTipo: v.pet_tipo,
+        sexo: v.sexo,
+        nascimento: v.nascimento,
+        peso: v.peso === null ? null : Number(v.peso),
+        cadastrado: v.cadastrado,
+        temperamento: v.temperamento,
+        observacao: v.observacao,
+      })),
+    };
+  });
+
 export type ItemSala = {
   id: string;
+  petId: string | null;
   petNome: string;
   clienteNome: string;
   clienteTelefone: string;
@@ -404,7 +487,7 @@ export const listSala = createServerFn({ method: "GET" })
     const { data: rows, error } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, pet_nome, finalizado_em, pagamento_confirmado, entrega_confirmada, agendamentos(clientes(nome, telefone), servicos(nome, preco))",
+        "id, pet_id, pet_nome, finalizado_em, pagamento_confirmado, entrega_confirmada, agendamentos(clientes(nome, telefone), servicos(nome, preco))",
       )
       .eq("empresa_id", empresaId)
       .eq("etapa", "finalizado")
@@ -414,6 +497,7 @@ export const listSala = createServerFn({ method: "GET" })
 
     return (rows ?? []).map((row: any) => ({
       id: row.id,
+      petId: row.pet_id,
       petNome: row.pet_nome || "Pet sem nome",
       clienteNome: row.agendamentos?.clientes?.nome ?? "—",
       clienteTelefone: row.agendamentos?.clientes?.telefone ?? "",
