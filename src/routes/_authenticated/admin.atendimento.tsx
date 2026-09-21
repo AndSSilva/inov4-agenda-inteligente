@@ -48,8 +48,8 @@ import {
   getFicha,
   iniciarAtendimento,
   listFichaAtendimento,
-  listHistorico,
   listHistoricoPet,
+  listPetsComHistorico,
   listPetsDoCliente,
   listSala,
   listTriagem,
@@ -315,6 +315,7 @@ function FichaDialog({
   const carregar = useServerFn(getFicha);
   const salvar = useServerFn(salvarFicha);
   const carregarPets = useServerFn(listPetsDoCliente);
+  const carregarHistPet = useServerFn(listHistoricoPet);
   const { data: ficha, isLoading } = useQuery({
     queryKey: ["ficha", id],
     queryFn: () => carregar({ data: { id: id! } }),
@@ -333,7 +334,10 @@ function FichaDialog({
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [petIdEscolhido, setPetIdEscolhido] = useState<string | null>(null);
-  const [escolhaFeita, setEscolhaFeita] = useState(false);
+  const [passo, setPasso] = useState<
+    "carregando" | "selecionar-pet" | "escolher-historico" | "ver-historico" | "form"
+  >("carregando");
+  const [petAtual, setPetAtual] = useState<PetResumo | null>(null);
 
   const { data: petsDoCliente, isLoading: carregandoPets } = useQuery({
     queryKey: ["pets-cliente", ficha?.clienteId],
@@ -341,33 +345,91 @@ function FichaDialog({
     enabled: Boolean(ficha && !ficha.petId),
   });
 
-  // Reseta o passo de escolha sempre que abre uma ficha diferente.
+  const { data: histPet, isLoading: carregandoHist } = useQuery({
+    queryKey: ["historico-pet-ficha", petAtual?.id],
+    queryFn: () => carregarHistPet({ data: { petId: petAtual!.id } }),
+    enabled: Boolean(petAtual),
+  });
+
+  // Reseta tudo sempre que abre uma ficha diferente.
   useEffect(() => {
-    setEscolhaFeita(false);
+    setPasso("carregando");
+    setPetAtual(null);
     setPetIdEscolhido(null);
   }, [id]);
 
-  const precisaEscolher = Boolean(
-    ficha && !ficha.petId && !escolhaFeita && (petsDoCliente ?? []).length > 0,
-  );
+  // Decide o primeiro passo assim que ficha + pets do cliente carregarem.
+  useEffect(() => {
+    if (!ficha) return;
+    if (ficha.petId) {
+      setPasso("form");
+      return;
+    }
+    if (passo !== "carregando" || carregandoPets) return;
+    const pets = petsDoCliente ?? [];
+    if (pets.length === 0) {
+      setPasso("form");
+    } else if (pets.length === 1) {
+      setPetAtual(pets[0]!);
+      setPasso("escolher-historico");
+    } else {
+      setPasso("selecionar-pet");
+    }
+  }, [ficha, petsDoCliente, carregandoPets, passo]);
 
-  function escolherPet(pet: PetResumo) {
-    setPetNome(pet.nome);
-    setPetTipo(pet.tipo);
-    setSexo(pet.sexo);
-    setNascimento(pet.nascimento ?? "");
-    setPeso(pet.peso === null ? "" : String(pet.peso));
-    setCadastrado(pet.cadastrado);
-    setTemperamento(pet.temperamento);
-    setObservacao(pet.observacao ?? "");
-    setFotoPreview(pet.fotoUrl);
-    setPetIdEscolhido(pet.id);
-    setEscolhaFeita(true);
+  function carregarDadosNoForm(
+    dados: {
+      nome: string;
+      tipo: string | null;
+      sexo: string | null;
+      nascimento: string | null;
+      peso: number | null;
+      cadastrado: boolean;
+      temperamento: string | null;
+      observacao: string | null;
+      fotoUrl: string | null;
+    },
+    petId: string,
+  ) {
+    setPetNome(dados.nome);
+    setPetTipo(dados.tipo);
+    setSexo(dados.sexo);
+    setNascimento(dados.nascimento ?? "");
+    setPeso(dados.peso === null ? "" : String(dados.peso));
+    setCadastrado(dados.cadastrado);
+    setTemperamento(dados.temperamento);
+    setObservacao(dados.observacao ?? "");
+    setFotoPreview(dados.fotoUrl);
+    setPetIdEscolhido(petId);
+    setPasso("form");
   }
 
-  function escolherOutroAnimal() {
+  function usarUltimoAtendimento() {
+    if (!petAtual) return;
+    const ultima = histPet?.visitas[0];
+    if (ultima) {
+      carregarDadosNoForm(
+        {
+          nome: petAtual.nome,
+          tipo: ultima.petTipo,
+          sexo: ultima.sexo,
+          nascimento: ultima.nascimento,
+          peso: ultima.peso,
+          cadastrado: ultima.cadastrado,
+          temperamento: ultima.temperamento,
+          observacao: ultima.observacao,
+          fotoUrl: ultima.fotoUrl,
+        },
+        petAtual.id,
+      );
+    } else {
+      carregarDadosNoForm(petAtual, petAtual.id);
+    }
+  }
+
+  function cadastrarOutroAnimal() {
     setPetIdEscolhido(null);
-    setEscolhaFeita(true);
+    setPasso("form");
   }
 
   useEffect(() => {
@@ -382,10 +444,7 @@ function FichaDialog({
     setObservacao(ficha.observacao ?? "");
     setFotoFile(null);
     setFotoPreview(ficha.fotoUrl);
-    if (ficha.petId) {
-      setPetIdEscolhido(ficha.petId);
-      setEscolhaFeita(true);
-    }
+    if (ficha.petId) setPetIdEscolhido(ficha.petId);
   }, [ficha]);
 
   async function codificarFoto(file: File) {
@@ -447,27 +506,24 @@ function FichaDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading || (ficha && !ficha.petId && carregandoPets) ? (
+        {isLoading || (ficha && !ficha.petId && carregandoPets) || passo === "carregando" ? (
           <p className="text-sm text-muted-foreground">Carregando...</p>
-        ) : precisaEscolher ? (
+        ) : passo === "selecionar-pet" ? (
           <div className="flex flex-col gap-3">
-            {(petsDoCliente ?? []).length === 1 ? (
-              <p className="text-sm text-muted-foreground">
-                {ficha?.clienteNome} já tem um pet cadastrado. É o mesmo animal desta visita?
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {ficha?.clienteNome} já tem {(petsDoCliente ?? []).length} pets cadastrados.
-                Selecione um, ou cadastre um novo.
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              {ficha?.clienteNome} já tem {(petsDoCliente ?? []).length} pets cadastrados. Selecione
+              um, ou cadastre um novo.
+            </p>
 
             <div className="flex flex-col gap-2">
               {(petsDoCliente ?? []).map((pet) => (
                 <button
                   key={pet.id}
                   type="button"
-                  onClick={() => escolherPet(pet)}
+                  onClick={() => {
+                    setPetAtual(pet);
+                    setPasso("escolher-historico");
+                  }}
                   className="flex items-center gap-3 rounded-xl border border-border p-3 text-left hover:bg-accent"
                 >
                   {pet.fotoUrl ? (
@@ -484,40 +540,163 @@ function FichaDialog({
                   <span className="min-w-0">
                     <span className="block text-sm font-medium">{pet.nome || "Sem nome"}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {pet.tipo ? TIPO_PET_LABELS[pet.tipo] : "Tipo não informado"}
+                      {pet.tipo
+                        ? (TIPO_PET_LABELS[pet.tipo] ?? "Tipo não informado")
+                        : "Tipo não informado"}
                     </span>
                   </span>
                 </button>
               ))}
             </div>
 
-            {(petsDoCliente ?? []).length === 1 ? (
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  className="h-11 flex-1 rounded-full"
-                  onClick={() => escolherPet((petsDoCliente ?? [])[0]!)}
-                >
-                  Sim, é o mesmo
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 flex-1 rounded-full"
-                  onClick={escolherOutroAnimal}
-                >
-                  Não, é outro animal
-                </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-full"
+              onClick={cadastrarOutroAnimal}
+            >
+              Cadastrar outro animal
+            </Button>
+          </div>
+        ) : passo === "escolher-historico" && petAtual ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+              {petAtual.fotoUrl ? (
+                <img
+                  src={petAtual.fotoUrl}
+                  alt={petAtual.nome}
+                  className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                  <PawPrint className="h-5 w-5" aria-hidden />
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{petAtual.nome || "Sem nome"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ficha?.clienteNome} já atendeu esse pet antes. O que você quer ver?
+                </p>
               </div>
-            ) : (
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                className="h-11 rounded-full"
+                disabled={carregandoHist}
+                onClick={usarUltimoAtendimento}
+              >
+                Último atendimento
+              </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="h-11 rounded-full"
-                onClick={escolherOutroAnimal}
+                disabled={carregandoHist}
+                onClick={() => setPasso("ver-historico")}
               >
-                Cadastrar outro animal
+                Histórico completo
               </Button>
+            </div>
+
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+              onClick={cadastrarOutroAnimal}
+            >
+              Não é esse pet — cadastrar outro animal
+            </button>
+          </div>
+        ) : passo === "ver-historico" && petAtual ? (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              className="self-start text-xs text-muted-foreground underline-offset-2 hover:underline"
+              onClick={() => setPasso("escolher-historico")}
+            >
+              ← Voltar
+            </button>
+
+            {carregandoHist ? (
+              <p className="text-sm text-muted-foreground">Carregando histórico...</p>
+            ) : (histPet?.visitas ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma ficha registrada ainda.</p>
+            ) : (
+              <Accordion type="multiple" className="flex flex-col gap-2">
+                {(histPet?.visitas ?? []).map((v) => (
+                  <AccordionItem
+                    key={v.atendimentoId}
+                    value={v.atendimentoId}
+                    className="rounded-xl border border-border px-3"
+                  >
+                    <AccordionTrigger className="py-3 text-sm hover:no-underline">
+                      <span className="flex flex-col items-start text-left">
+                        <span className="font-medium">
+                          {v.inicio
+                            ? `${dataCurta(v.inicio)} · ${horaLocal(v.inicio)}`
+                            : "Data não informada"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{v.servicoNome}</span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="flex flex-col gap-3 pb-2">
+                        {v.fotoUrl && (
+                          <img
+                            src={v.fotoUrl}
+                            alt={`Foto da visita de ${dataCurta(v.inicio)}`}
+                            className="h-24 w-24 rounded-xl object-cover ring-1 ring-border"
+                          />
+                        )}
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                          <Campo label="Peso" valor={v.peso === null ? "—" : `${v.peso} kg`} />
+                          <Campo label="Cadastrado" valor={v.cadastrado ? "Sim" : "Não"} />
+                          <Campo
+                            label="Temperamento"
+                            valor={
+                              v.temperamento === "manso"
+                                ? "Manso"
+                                : v.temperamento === "bravo"
+                                  ? "Bravo"
+                                  : "—"
+                            }
+                          />
+                          <Campo label="Cliente" valor={v.clienteNome} />
+                        </dl>
+                        {v.observacao && (
+                          <div>
+                            <dt className="text-xs text-muted-foreground">Observação</dt>
+                            <dd className="text-sm">{v.observacao}</dd>
+                          </div>
+                        )}
+                        <Button
+                          type="button"
+                          className="h-10 self-start rounded-full"
+                          onClick={() =>
+                            carregarDadosNoForm(
+                              {
+                                nome: petAtual.nome,
+                                tipo: v.petTipo,
+                                sexo: v.sexo,
+                                nascimento: v.nascimento,
+                                peso: v.peso,
+                                cadastrado: v.cadastrado,
+                                temperamento: v.temperamento,
+                                observacao: v.observacao,
+                                fotoUrl: v.fotoUrl,
+                              },
+                              petAtual.id,
+                            )
+                          }
+                        >
+                          Usar estes dados
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             )}
           </div>
         ) : (
@@ -674,7 +853,7 @@ function FichaDialog({
           <Button type="button" variant="ghost" className="h-12 rounded-full" onClick={onClose}>
             Cancelar
           </Button>
-          {!precisaEscolher && (
+          {passo === "form" && (
             <Button
               type="button"
               className="h-12 rounded-full px-6"
@@ -851,10 +1030,15 @@ function CheckoutAcoes({
 // ---------------------------------------------------------------------------
 
 function HistoricoTab() {
-  const carregar = useServerFn(listHistorico);
-  const [abertoId, setAbertoId] = useState<string | null>(null);
-  const [petHistoricoId, setPetHistoricoId] = useState<string | null>(null);
-  const { data, isLoading } = useQuery({ queryKey: ["historico"], queryFn: () => carregar() });
+  const carregar = useServerFn(listPetsComHistorico);
+  const [petEscolhaId, setPetEscolhaId] = useState<string | null>(null);
+  const [visualizacao, setVisualizacao] = useState<{
+    petId: string;
+    modo: "completo" | "ultimo";
+  } | null>(null);
+  const { data, isLoading } = useQuery({ queryKey: ["pets-historico"], queryFn: () => carregar() });
+
+  const petEscolha = (data ?? []).find((p) => p.petId === petEscolhaId) ?? null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -862,127 +1046,96 @@ function HistoricoTab() {
 
       {!isLoading && (data ?? []).length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Nenhuma ficha finalizada ainda.
+          Nenhum pet com histórico ainda.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {(data ?? []).map((i) => (
-            <li
-              key={i.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
-            >
-              <div className="min-w-0">
-                {i.petId ? (
-                  <button
-                    type="button"
-                    className="text-sm font-bold underline-offset-2 hover:underline"
-                    onClick={() => setPetHistoricoId(i.petId)}
-                  >
-                    {i.petNome}
-                  </button>
-                ) : (
-                  <p className="text-sm font-bold">{i.petNome}</p>
-                )}
-                <p className="truncate text-xs text-muted-foreground">
-                  {i.clienteNome} · {i.servicoNome}
-                  {i.finalizadoEm
-                    ? ` · ${dataCurta(i.finalizadoEm)} ${horaLocal(i.finalizadoEm)}`
-                    : ""}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="h-10 rounded-full"
-                onClick={() => setAbertoId(i.id)}
+          {(data ?? []).map((p) => (
+            <li key={p.petId} className="rounded-2xl border border-border bg-card p-4">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 text-left"
+                onClick={() => setPetEscolhaId(p.petId)}
               >
-                Ver ficha
-              </Button>
+                {p.fotoUrl ? (
+                  <img
+                    src={p.fotoUrl}
+                    alt={p.nome}
+                    className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                    <PawPrint className="h-5 w-5" aria-hidden />
+                  </span>
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold underline-offset-2 hover:underline">
+                    {p.nome}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {p.tipo ? (TIPO_PET_LABELS[p.tipo] ?? "") : ""} · {p.totalVisitas}{" "}
+                    {p.totalVisitas === 1 ? "atendimento" : "atendimentos"}
+                    {p.ultimaVisitaEm ? ` · última em ${dataCurta(p.ultimaVisitaEm)}` : ""}
+                  </span>
+                </span>
+              </button>
             </li>
           ))}
         </ul>
       )}
 
-      <PetHistoricoDialog petId={petHistoricoId} onClose={() => setPetHistoricoId(null)} />
-      <HistoricoDetalheDialog id={abertoId} onClose={() => setAbertoId(null)} />
-    </div>
-  );
-}
-
-function HistoricoDetalheDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
-  const carregar = useServerFn(getFicha);
-  const { data: ficha, isLoading } = useQuery({
-    queryKey: ["ficha", id],
-    queryFn: () => carregar({ data: { id: id! } }),
-    enabled: Boolean(id),
-  });
-
-  return (
-    <Dialog open={Boolean(id)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Ficha de atendimento</DialogTitle>
-          <DialogDescription>
-            {ficha ? `${ficha.clienteNome} · ${ficha.servicoNome}` : "Carregando..."}
-          </DialogDescription>
-        </DialogHeader>
-
-        {isLoading || !ficha ? (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-center">
-              {ficha.fotoUrl ? (
-                <img
-                  src={ficha.fotoUrl}
-                  alt={`Foto de ${ficha.petNome}`}
-                  className="h-32 w-32 rounded-2xl object-cover ring-1 ring-border"
-                />
-              ) : (
-                <span className="grid h-32 w-32 place-items-center rounded-2xl bg-muted text-muted-foreground">
-                  <Camera className="h-8 w-8" aria-hidden />
-                </span>
-              )}
-            </div>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <Campo label="Nome do pet" valor={ficha.petNome} />
-              <Campo
-                label="Tipo"
-                valor={ficha.petTipo ? (TIPO_PET_LABELS[ficha.petTipo] ?? "—") : "—"}
-              />
-              <Campo
-                label="Sexo"
-                valor={ficha.sexo === "macho" ? "Macho" : ficha.sexo === "femea" ? "Fêmea" : "—"}
-              />
-              <Campo label="Nascimento" valor={ficha.nascimento ?? "—"} />
-              <Campo label="Peso" valor={ficha.peso === null ? "—" : `${ficha.peso} kg`} />
-              <Campo label="Cadastrado" valor={ficha.cadastrado ? "Sim" : "Não"} />
-              <Campo
-                label="Temperamento"
-                valor={
-                  ficha.temperamento === "manso"
-                    ? "Manso"
-                    : ficha.temperamento === "bravo"
-                      ? "Bravo"
-                      : "—"
-                }
-              />
-            </dl>
-            {ficha.observacao && (
-              <div>
-                <dt className="text-xs text-muted-foreground">Observação</dt>
-                <dd className="text-sm">{ficha.observacao}</dd>
-              </div>
-            )}
+      <Dialog
+        open={Boolean(petEscolha)}
+        onOpenChange={(open) => (!open ? setPetEscolhaId(null) : undefined)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{petEscolha?.nome}</DialogTitle>
+            <DialogDescription>O que você quer ver?</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              className="h-11 rounded-full"
+              onClick={() => {
+                if (!petEscolha) return;
+                setVisualizacao({ petId: petEscolha.petId, modo: "ultimo" });
+                setPetEscolhaId(null);
+              }}
+            >
+              Último atendimento
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-full"
+              onClick={() => {
+                if (!petEscolha) return;
+                setVisualizacao({ petId: petEscolha.petId, modo: "completo" });
+                setPetEscolhaId(null);
+              }}
+            >
+              Histórico completo
+            </Button>
           </div>
-        )}
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="h-12 rounded-full"
+              onClick={() => setPetEscolhaId(null)}
+            >
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <DialogFooter>
-          <Button variant="ghost" className="h-12 rounded-full" onClick={onClose}>
-            Fechar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <PetHistoricoDialog
+        petId={visualizacao?.petId ?? null}
+        modo={visualizacao?.modo ?? "completo"}
+        onClose={() => setVisualizacao(null)}
+      />
+    </div>
   );
 }
 
@@ -999,13 +1152,23 @@ function Campo({ label, valor }: { label: string; valor: string }) {
 // Histórico do pet (todas as fichas dele, numa visualização só)
 // ---------------------------------------------------------------------------
 
-function PetHistoricoDialog({ petId, onClose }: { petId: string | null; onClose: () => void }) {
+function PetHistoricoDialog({
+  petId,
+  onClose,
+  modo = "completo",
+}: {
+  petId: string | null;
+  onClose: () => void;
+  modo?: "completo" | "ultimo";
+}) {
   const carregar = useServerFn(listHistoricoPet);
   const { data, isLoading } = useQuery({
     queryKey: ["historico-pet", petId],
     queryFn: () => carregar({ data: { petId: petId! } }),
     enabled: Boolean(petId),
   });
+
+  const visitas = data ? (modo === "ultimo" ? data.visitas.slice(0, 1) : data.visitas) : [];
 
   return (
     <Dialog open={Boolean(petId)} onOpenChange={(open) => (!open ? onClose() : undefined)}>
@@ -1014,7 +1177,9 @@ function PetHistoricoDialog({ petId, onClose }: { petId: string | null; onClose:
           <DialogTitle>{data ? data.pet.nome || "Pet sem nome" : "Histórico do pet"}</DialogTitle>
           <DialogDescription>
             {data
-              ? `${data.visitas.length} ${data.visitas.length === 1 ? "ficha" : "fichas"} registradas`
+              ? modo === "ultimo"
+                ? "Último atendimento"
+                : `${data.visitas.length} ${data.visitas.length === 1 ? "ficha" : "fichas"} registradas`
               : "Carregando..."}
           </DialogDescription>
         </DialogHeader>
@@ -1060,11 +1225,11 @@ function PetHistoricoDialog({ petId, onClose }: { petId: string | null; onClose:
               </dl>
             </div>
 
-            {data.visitas.length === 0 ? (
+            {visitas.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma ficha registrada ainda.</p>
             ) : (
               <Accordion type="multiple" className="flex flex-col gap-2">
-                {data.visitas.map((v) => (
+                {visitas.map((v) => (
                   <AccordionItem
                     key={v.atendimentoId}
                     value={v.atendimentoId}

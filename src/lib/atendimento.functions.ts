@@ -407,6 +407,64 @@ export type HistoricoPet = {
   visitas: VisitaPet[];
 };
 
+export type PetComHistorico = {
+  petId: string;
+  nome: string;
+  tipo: string | null;
+  fotoUrl: string | null;
+  totalVisitas: number;
+  ultimaVisitaEm: string | null;
+};
+
+/** Histórico agrupado por pet — cada linha é um animal, não uma ficha avulsa. */
+export const listPetsComHistorico = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PetComHistorico[]> => {
+    const ctx = context as unknown as Ctx;
+    const empresaId = await empresaIdDoUsuario(ctx);
+
+    const { data: visitas, error } = await ctx.supabase
+      .from("atendimentos")
+      .select("pet_id, finalizado_em")
+      .eq("empresa_id", empresaId)
+      .eq("etapa", "finalizado")
+      .not("pet_id", "is", null);
+    if (error) throw new Error(error.message);
+
+    const porPet = new Map<string, { total: number; ultima: string | null }>();
+    for (const v of visitas ?? []) {
+      const atual = porPet.get(v.pet_id) ?? { total: 0, ultima: null };
+      atual.total += 1;
+      if (!atual.ultima || (v.finalizado_em && v.finalizado_em > atual.ultima)) {
+        atual.ultima = v.finalizado_em;
+      }
+      porPet.set(v.pet_id, atual);
+    }
+    if (porPet.size === 0) return [];
+
+    const { data: pets, error: erroPets } = await ctx.supabase
+      .from("pets")
+      .select("id, nome, tipo, foto_url")
+      .in("id", Array.from(porPet.keys()));
+    if (erroPets) throw new Error(erroPets.message);
+
+    return (pets ?? [])
+      .map((p: any) => {
+        const resumo = porPet.get(p.id)!;
+        return {
+          petId: p.id,
+          nome: p.nome || "Pet sem nome",
+          tipo: p.tipo,
+          fotoUrl: p.foto_url,
+          totalVisitas: resumo.total,
+          ultimaVisitaEm: resumo.ultima,
+        };
+      })
+      .sort((a: PetComHistorico, b: PetComHistorico) =>
+        (b.ultimaVisitaEm ?? "").localeCompare(a.ultimaVisitaEm ?? ""),
+      );
+  });
+
 /** Cadastro atual do pet + todas as visitas (fichas) já vinculadas a ele, mais recente primeiro. */
 export const listHistoricoPet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
