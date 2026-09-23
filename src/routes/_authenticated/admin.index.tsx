@@ -150,10 +150,11 @@ function DashboardPage() {
 
       {data && (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <Stat label="Agendados" value={String(data.metricas.agendados)} />
             <Stat label="Confirmados" value={String(data.metricas.confirmados)} highlight />
-            <Stat label="Receita" value={moeda(data.metricas.receita)} />
+            <Stat label="Receita prevista" value={moeda(data.metricas.receitaPrevista)} />
+            <Stat label="Receita real" value={moeda(data.metricas.receitaReal)} highlight />
             <Stat label="Ocupação" value={`${data.metricas.ocupacao}%`} />
           </div>
 

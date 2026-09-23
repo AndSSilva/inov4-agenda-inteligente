@@ -43,6 +43,7 @@ export type AgendamentoItem = {
   cliente_filiacao: string | null;
   servico_nome: string;
   servico_preco: number;
+  preco_previsto: number;
   servico_duracao_min: number;
   confirmacao_solicitada_em: string | null;
   lembrete_enviado_em: string | null;
@@ -86,7 +87,7 @@ async function empresaDoUsuario(context: Ctx): Promise<Empresa> {
 }
 
 const SELECT_AGENDAMENTO =
-  "id, inicio, fim, status, confirmacao_solicitada_em, lembrete_enviado_em, clientes(nome, telefone, filiacao), servicos(nome, preco, duracao_min)";
+  "id, inicio, fim, status, preco_previsto, confirmacao_solicitada_em, lembrete_enviado_em, clientes(nome, telefone, filiacao), servicos(nome, preco, duracao_min)";
 
 function mapAgendamento(row: any): AgendamentoItem {
   return {
@@ -99,6 +100,7 @@ function mapAgendamento(row: any): AgendamentoItem {
     cliente_filiacao: row.clientes?.filiacao ?? null,
     servico_nome: row.servicos?.nome ?? "—",
     servico_preco: Number(row.servicos?.preco ?? 0),
+    preco_previsto: Number(row.preco_previsto ?? 0),
     servico_duracao_min: Number(row.servicos?.duracao_min ?? 30),
     confirmacao_solicitada_em: row.confirmacao_solicitada_em ?? null,
     lembrete_enviado_em: row.lembrete_enviado_em ?? null,
@@ -125,26 +127,55 @@ export const getDashboard = createServerFn({ method: "GET" })
     const inicioPeriodo = new Date(isoLocal(data.inicio, "00:00")).toISOString();
     const fimPeriodo = new Date(isoLocal(somaDias(data.fim, 1), "00:00")).toISOString();
 
-    const { data: doPeriodo } = await ctx.supabase
-      .from("agendamentos")
-      .select(SELECT_AGENDAMENTO)
-      .eq("empresa_id", empresa.id)
-      .gte("inicio", inicioPeriodo)
-      .lt("inicio", fimPeriodo)
-      .order("inicio", { ascending: true })
-      .limit(500);
+    const doPeriodo: any[] = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data: pagina, error } = await ctx.supabase
+        .from("agendamentos")
+        .select(SELECT_AGENDAMENTO)
+        .eq("empresa_id", empresa.id)
+        .gte("inicio", inicioPeriodo)
+        .lt("inicio", fimPeriodo)
+        .order("inicio", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + 499);
+      if (error) throw new Error(error.message);
+      doPeriodo.push(...(pagina ?? []));
+      if ((pagina ?? []).length < 500) break;
+    }
+
+    // A receita recebida pertence ao dia do pagamento, não ao dia da reserva.
+    // Consultas paginadas evitam perder valores em períodos com muitos atendimentos.
+    let receitaReal = 0;
+    for (let offset = 0; ; offset += 500) {
+      const { data: pagamentos, error } = await ctx.supabase
+        .from("atendimentos")
+        .select("id, valor_real")
+        .eq("empresa_id", empresa.id)
+        .eq("pagamento_confirmado", true)
+        .gte("pagamento_confirmado_em", inicioPeriodo)
+        .lt("pagamento_confirmado_em", fimPeriodo)
+        .order("pagamento_confirmado_em", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + 499);
+      if (error) throw new Error(error.message);
+      receitaReal += (pagamentos ?? []).reduce(
+        (total: number, item: any) => total + Number(item.valor_real ?? 0),
+        0,
+      );
+      if ((pagamentos ?? []).length < 500) break;
+    }
 
     const { count: totalClientes } = await ctx.supabase
       .from("clientes")
       .select("id", { count: "exact", head: true })
       .eq("empresa_id", empresa.id);
 
-    const lista: AgendamentoItem[] = (doPeriodo ?? []).map(mapAgendamento);
+    const lista: AgendamentoItem[] = doPeriodo.map(mapAgendamento);
     const validos = lista.filter((a) => a.status !== "cancelado");
     const confirmados = lista.filter(
       (a) => a.status === "confirmado" || a.status === "concluido",
     ).length;
-    const receita = validos.reduce((s, a) => s + a.servico_preco, 0);
+    const receitaPrevista = validos.reduce((s, a) => s + a.preco_previsto, 0);
     const minutosOcupados = validos.reduce(
       (s, a) => s + (new Date(a.fim).getTime() - new Date(a.inicio).getTime()) / 60_000,
       0,
@@ -171,7 +202,8 @@ export const getDashboard = createServerFn({ method: "GET" })
       metricas: {
         agendados: validos.length,
         confirmados,
-        receita,
+        receitaPrevista,
+        receitaReal,
         ocupacao: Math.min(100, Math.round((minutosOcupados / capacidadePeriodo) * 100)),
         totalClientes: totalClientes ?? 0,
       },
