@@ -25,6 +25,7 @@ export type Database = {
           inicio: string
           lembrete_enviado_em: string | null
           observacao: string | null
+          preco_previsto: number
           servico_id: string
           status: Database["public"]["Enums"]["status_agendamento"]
         }
@@ -38,6 +39,7 @@ export type Database = {
           inicio: string
           lembrete_enviado_em?: string | null
           observacao?: string | null
+          preco_previsto: number
           servico_id: string
           status?: Database["public"]["Enums"]["status_agendamento"]
         }
@@ -51,6 +53,7 @@ export type Database = {
           inicio?: string
           lembrete_enviado_em?: string | null
           observacao?: string | null
+          preco_previsto?: number
           servico_id?: string
           status?: Database["public"]["Enums"]["status_agendamento"]
         }
@@ -101,6 +104,7 @@ export type Database = {
           pet_tipo: Database["public"]["Enums"]["tipo_pet"] | null
           sexo: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
+          valor_real: number | null
         }
         Insert: {
           agendamento_id: string
@@ -124,6 +128,7 @@ export type Database = {
           pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
           sexo?: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+          valor_real?: number | null
         }
         Update: {
           agendamento_id?: string
@@ -147,6 +152,7 @@ export type Database = {
           pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
           sexo?: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+          valor_real?: number | null
         }
         Relationships: [
           {
