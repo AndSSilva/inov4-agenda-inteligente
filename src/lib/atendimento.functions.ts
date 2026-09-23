@@ -145,6 +145,8 @@ export type Ficha = {
   id: string;
   petId: string | null;
   clienteId: string;
+  precoPrevisto: number;
+  valorReal: number | null;
   fotoUrl: string | null;
   petNome: string;
   petTipo: string | null;
@@ -168,7 +170,7 @@ export const getFicha = createServerFn({ method: "GET" })
     const { data: row, error } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, pet_id, foto_url, pet_nome, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, agendamentos(inicio, cliente_id, clientes(nome), servicos(nome))",
+        "id, pet_id, foto_url, pet_nome, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, valor_real, agendamentos(inicio, cliente_id, preco_previsto, clientes(nome), servicos(nome))",
       )
       .eq("id", data.id)
       .eq("empresa_id", empresaId)
@@ -179,6 +181,8 @@ export const getFicha = createServerFn({ method: "GET" })
       id: row.id,
       petId: row.pet_id,
       clienteId: (row as any).agendamentos?.cliente_id ?? "",
+      precoPrevisto: Number((row as any).agendamentos?.preco_previsto ?? 0),
+      valorReal: row.valor_real === null ? null : Number(row.valor_real),
       fotoUrl: row.foto_url,
       petNome: row.pet_nome ?? "",
       petTipo: row.pet_tipo,
@@ -252,6 +256,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
         sexo: z.enum(["macho", "femea"]).nullable(),
         nascimento: z.string().nullable(),
         peso: z.number().positive().max(999).nullable(),
+        valorReal: z.number().finite().min(0).max(100000).refine((v) => Math.round(v * 100) === v * 100, "Informe no máximo duas casas decimais"),
         cadastrado: z.boolean(),
         temperamento: z.enum(["manso", "bravo"]).nullable(),
         observacao: z.string().trim().max(2000).optional().default(""),
@@ -335,6 +340,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
         sexo: data.sexo,
         nascimento: data.nascimento || null,
         peso: data.peso,
+        valor_real: data.valorReal,
         cadastrado: data.cadastrado,
         temperamento: data.temperamento,
         observacao: data.observacao || null,
@@ -532,6 +538,7 @@ export type ItemSala = {
   clienteTelefone: string;
   servicoNome: string;
   servicoPreco: number;
+  valorReal: number | null;
   finalizadoEm: string | null;
   pagamentoConfirmado: boolean;
   entregaConfirmada: boolean;
@@ -545,7 +552,7 @@ export const listSala = createServerFn({ method: "GET" })
     const { data: rows, error } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, pet_id, pet_nome, finalizado_em, pagamento_confirmado, entrega_confirmada, agendamentos(clientes(nome, telefone), servicos(nome, preco))",
+        "id, pet_id, pet_nome, finalizado_em, valor_real, pagamento_confirmado, entrega_confirmada, agendamentos(preco_previsto, clientes(nome, telefone), servicos(nome))",
       )
       .eq("empresa_id", empresaId)
       .eq("etapa", "finalizado")
@@ -560,7 +567,8 @@ export const listSala = createServerFn({ method: "GET" })
       clienteNome: row.agendamentos?.clientes?.nome ?? "—",
       clienteTelefone: row.agendamentos?.clientes?.telefone ?? "",
       servicoNome: row.agendamentos?.servicos?.nome ?? "—",
-      servicoPreco: Number(row.agendamentos?.servicos?.preco ?? 0),
+      servicoPreco: Number(row.agendamentos?.preco_previsto ?? 0),
+      valorReal: row.valor_real === null ? null : Number(row.valor_real),
       finalizadoEm: row.finalizado_em,
       pagamentoConfirmado: row.pagamento_confirmado,
       entregaConfirmada: row.entrega_confirmada,
@@ -572,11 +580,18 @@ export const confirmarPagamento = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as Ctx;
-    const { error } = await ctx.supabase
+    const empresaId = await empresaIdDoUsuario(ctx);
+    const { data: confirmado, error } = await ctx.supabase
       .from("atendimentos")
       .update({ pagamento_confirmado: true, pagamento_confirmado_em: new Date().toISOString() })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("empresa_id", empresaId)
+      .eq("pagamento_confirmado", false)
+      .not("valor_real", "is", null)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!confirmado) throw new Error("Informe o valor real na ficha antes de confirmar o pagamento.");
     return { ok: true as const };
   });
 
