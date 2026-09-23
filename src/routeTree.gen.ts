@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as BootstrapMasterRouteImport } from './routes/bootstrap-master'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as MasterLoginRouteImport } from './routes/master.login'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminAgendamentosRouteImport } from './routes/_authenticated/admin.agendamentos'
+import { Route as AuthenticatedAdminAtendimentoRouteImport } from './routes/_authenticated/admin.atendimento'
 import { Route as AuthenticatedAdminCadastroRouteImport } from './routes/_authenticated/admin.cadastro'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
@@ -33,6 +35,11 @@ const SlugRoute = SlugRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BootstrapMasterRoute = BootstrapMasterRouteImport.update({
+  id: '/bootstrap-master',
+  path: '/bootstrap-master',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -54,6 +61,12 @@ const AuthenticatedAdminAgendamentosRoute =
   AuthenticatedAdminAgendamentosRouteImport.update({
     id: '/admin/agendamentos',
     path: '/admin/agendamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminAtendimentoRoute =
+  AuthenticatedAdminAtendimentoRouteImport.update({
+    id: '/admin/atendimento',
+    path: '/admin/atendimento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminCadastroRoute =
@@ -84,9 +97,11 @@ const AuthenticatedMasterIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
+  '/bootstrap-master': typeof BootstrapMasterRoute
   '/admin/login': typeof AdminLoginRoute
   '/master/login': typeof MasterLoginRoute
   '/admin/agendamentos': typeof AuthenticatedAdminAgendamentosRoute
+  '/admin/atendimento': typeof AuthenticatedAdminAtendimentoRoute
   '/admin/cadastro': typeof AuthenticatedAdminCadastroRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
@@ -96,9 +111,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
+  '/bootstrap-master': typeof BootstrapMasterRoute
   '/admin/login': typeof AdminLoginRoute
   '/master/login': typeof MasterLoginRoute
   '/admin/agendamentos': typeof AuthenticatedAdminAgendamentosRoute
+  '/admin/atendimento': typeof AuthenticatedAdminAtendimentoRoute
   '/admin/cadastro': typeof AuthenticatedAdminCadastroRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
@@ -110,9 +127,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/$slug': typeof SlugRoute
+  '/bootstrap-master': typeof BootstrapMasterRoute
   '/admin/login': typeof AdminLoginRoute
   '/master/login': typeof MasterLoginRoute
   '/_authenticated/admin/agendamentos': typeof AuthenticatedAdminAgendamentosRoute
+  '/_authenticated/admin/atendimento': typeof AuthenticatedAdminAtendimentoRoute
   '/_authenticated/admin/cadastro': typeof AuthenticatedAdminCadastroRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
@@ -124,9 +143,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$slug'
+    | '/bootstrap-master'
     | '/admin/login'
     | '/master/login'
     | '/admin/agendamentos'
+    | '/admin/atendimento'
     | '/admin/cadastro'
     | '/admin/clientes'
     | '/admin/configuracoes'
@@ -136,9 +157,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$slug'
+    | '/bootstrap-master'
     | '/admin/login'
     | '/master/login'
     | '/admin/agendamentos'
+    | '/admin/atendimento'
     | '/admin/cadastro'
     | '/admin/clientes'
     | '/admin/configuracoes'
@@ -149,9 +172,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/$slug'
+    | '/bootstrap-master'
     | '/admin/login'
     | '/master/login'
     | '/_authenticated/admin/agendamentos'
+    | '/_authenticated/admin/atendimento'
     | '/_authenticated/admin/cadastro'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/configuracoes'
@@ -163,6 +188,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   SlugRoute: typeof SlugRoute
+  BootstrapMasterRoute: typeof BootstrapMasterRoute
   AdminLoginRoute: typeof AdminLoginRoute
   MasterLoginRoute: typeof MasterLoginRoute
 }
@@ -188,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bootstrap-master': {
+      id: '/bootstrap-master'
+      path: '/bootstrap-master'
+      fullPath: '/bootstrap-master'
+      preLoaderRoute: typeof BootstrapMasterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -216,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/agendamentos'
       fullPath: '/admin/agendamentos'
       preLoaderRoute: typeof AuthenticatedAdminAgendamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/atendimento': {
+      id: '/_authenticated/admin/atendimento'
+      path: '/admin/atendimento'
+      fullPath: '/admin/atendimento'
+      preLoaderRoute: typeof AuthenticatedAdminAtendimentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/cadastro': {
@@ -251,6 +291,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAgendamentosRoute: typeof AuthenticatedAdminAgendamentosRoute
+  AuthenticatedAdminAtendimentoRoute: typeof AuthenticatedAdminAtendimentoRoute
   AuthenticatedAdminCadastroRoute: typeof AuthenticatedAdminCadastroRoute
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
@@ -260,6 +301,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAgendamentosRoute: AuthenticatedAdminAgendamentosRoute,
+  AuthenticatedAdminAtendimentoRoute: AuthenticatedAdminAtendimentoRoute,
   AuthenticatedAdminCadastroRoute: AuthenticatedAdminCadastroRoute,
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
@@ -274,6 +316,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   SlugRoute: SlugRoute,
+  BootstrapMasterRoute: BootstrapMasterRoute,
   AdminLoginRoute: AdminLoginRoute,
   MasterLoginRoute: MasterLoginRoute,
 }
