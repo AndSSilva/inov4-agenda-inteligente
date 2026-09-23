@@ -256,7 +256,15 @@ export const salvarFicha = createServerFn({ method: "POST" })
         sexo: z.enum(["macho", "femea"]).nullable(),
         nascimento: z.string().nullable(),
         peso: z.number().positive().max(999).nullable(),
-        valorReal: z.number().finite().min(0).max(100000).refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 0.000001, "Informe no máximo duas casas decimais"),
+        valorReal: z
+          .number()
+          .finite()
+          .min(0)
+          .max(100000)
+          .refine(
+            (v) => Math.abs(Math.round(v * 100) - v * 100) < 0.000001,
+            "Informe no máximo duas casas decimais",
+          ),
         cadastrado: z.boolean(),
         temperamento: z.enum(["manso", "bravo"]).nullable(),
         observacao: z.string().trim().max(2000).optional().default(""),
@@ -282,7 +290,8 @@ export const salvarFicha = createServerFn({ method: "POST" })
       .eq("empresa_id", empresaId)
       .single();
     if (erroAtual || !atendimentoAtual) throw new Error("Atendimento não encontrado.");
-    if (atendimentoAtual.pagamento_confirmado) throw new Error("Não é possível alterar uma ficha com pagamento confirmado.");
+    if (atendimentoAtual.pagamento_confirmado)
+      throw new Error("Não é possível alterar uma ficha com pagamento confirmado.");
     const clienteId = (atendimentoAtual as any).agendamentos?.cliente_id as string;
 
     let fotoUrl: string | null = null;
@@ -596,7 +605,8 @@ export const confirmarPagamento = createServerFn({ method: "POST" })
       .select("id")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!confirmado) throw new Error("Informe o valor real na ficha antes de confirmar o pagamento.");
+    if (!confirmado)
+      throw new Error("Informe o valor real na ficha antes de confirmar o pagamento.");
     return { ok: true as const };
   });
 

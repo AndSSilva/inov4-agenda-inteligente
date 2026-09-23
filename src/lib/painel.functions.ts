@@ -158,7 +158,10 @@ export const getDashboard = createServerFn({ method: "GET" })
         .order("id", { ascending: true })
         .range(offset, offset + 499);
       if (error) throw new Error(error.message);
-      receitaReal += (pagamentos ?? []).reduce((total: number, item: any) => total + Number(item.valor_real ?? 0), 0);
+      receitaReal += (pagamentos ?? []).reduce(
+        (total: number, item: any) => total + Number(item.valor_real ?? 0),
+        0,
+      );
       if ((pagamentos ?? []).length < 500) break;
     }
 

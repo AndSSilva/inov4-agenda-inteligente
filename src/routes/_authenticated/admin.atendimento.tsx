@@ -466,7 +466,13 @@ function FichaDialog({
       toast.error("Informe o nome do pet");
       return;
     }
-    if (valorReal.trim() === "" || !Number.isFinite(Number(valorReal)) || Number(valorReal) < 0 || Number(valorReal) > 100000 || Math.abs(Math.round(Number(valorReal) * 100) - Number(valorReal) * 100) > 0.000001) {
+    if (
+      valorReal.trim() === "" ||
+      !Number.isFinite(Number(valorReal)) ||
+      Number(valorReal) < 0 ||
+      Number(valorReal) > 100000 ||
+      Math.abs(Math.round(Number(valorReal) * 100) - Number(valorReal) * 100) > 0.000001
+    ) {
       toast.error("Informe um valor real válido, com até duas casas decimais");
       return;
     }
@@ -670,8 +676,14 @@ function FichaDialog({
                             }
                           />
                           <Campo label="Cliente" valor={v.clienteNome} />
-                          <Campo label="Valor real" valor={v.valorReal === null ? "—" : moeda(v.valorReal)} />
-                          <Campo label="Pagamento" valor={v.pagamentoConfirmado ? "Confirmado" : "Pendente"} />
+                          <Campo
+                            label="Valor real"
+                            valor={v.valorReal === null ? "—" : moeda(v.valorReal)}
+                          />
+                          <Campo
+                            label="Pagamento"
+                            valor={v.pagamentoConfirmado ? "Confirmado" : "Pendente"}
+                          />
                         </dl>
                         {v.observacao && (
                           <div>
@@ -860,7 +872,9 @@ function FichaDialog({
                 onChange={(event) => setValorReal(event.target.value)}
                 required
               />
-              <p className="text-xs text-muted-foreground">Valor previsto: {moeda(ficha?.precoPrevisto ?? 0)}</p>
+              <p className="text-xs text-muted-foreground">
+                Valor previsto: {moeda(ficha?.precoPrevisto ?? 0)}
+              </p>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -936,7 +950,8 @@ function SalaTab() {
                   <p className="text-sm font-bold">{i.petNome}</p>
                 )}
                 <p className="truncate text-xs text-muted-foreground">
-                  {i.clienteNome} · {i.servicoNome} · {i.valorReal === null ? "Valor a definir" : moeda(i.valorReal)}
+                  {i.clienteNome} · {i.servicoNome} ·{" "}
+                  {i.valorReal === null ? "Valor a definir" : moeda(i.valorReal)}
                 </p>
                 <p className="mt-1 flex flex-wrap gap-1.5 text-xs">
                   <span
@@ -975,7 +990,9 @@ function SalaTab() {
               <div className="rounded-xl border border-border p-3 text-sm">
                 <p className="font-medium">{item.servicoNome}</p>
                 <p className="text-muted-foreground">Previsto: {moeda(item.servicoPreco)}</p>
-                <p className="font-semibold">Valor real: {item.valorReal === null ? "Não informado" : moeda(item.valorReal)}</p>
+                <p className="font-semibold">
+                  Valor real: {item.valorReal === null ? "Não informado" : moeda(item.valorReal)}
+                </p>
               </div>
 
               <CheckoutAcoes
@@ -1000,7 +1017,12 @@ function CheckoutAcoes({
   item,
   onAtualizar,
 }: {
-  item: { id: string; valorReal: number | null; pagamentoConfirmado: boolean; entregaConfirmada: boolean };
+  item: {
+    id: string;
+    valorReal: number | null;
+    pagamentoConfirmado: boolean;
+    entregaConfirmada: boolean;
+  };
   onAtualizar: () => void;
 }) {
   const pagar = useServerFn(confirmarPagamento);
@@ -1036,7 +1058,9 @@ function CheckoutAcoes({
         {item.pagamentoConfirmado ? "Pagamento confirmado" : "Confirmar pagamento"}
       </Button>
       {item.valorReal === null && (
-        <p className="text-center text-xs text-muted-foreground">Informe o valor real na ficha antes de confirmar o pagamento.</p>
+        <p className="text-center text-xs text-muted-foreground">
+          Informe o valor real na ficha antes de confirmar o pagamento.
+        </p>
       )}
       <Button
         className="h-12 rounded-full"
@@ -1298,8 +1322,14 @@ function PetHistoricoDialog({
                             }
                           />
                           <Campo label="Cliente" valor={v.clienteNome} />
-                          <Campo label="Valor real" valor={v.valorReal === null ? "—" : moeda(v.valorReal)} />
-                          <Campo label="Pagamento" valor={v.pagamentoConfirmado ? "Confirmado" : "Pendente"} />
+                          <Campo
+                            label="Valor real"
+                            valor={v.valorReal === null ? "—" : moeda(v.valorReal)}
+                          />
+                          <Campo
+                            label="Pagamento"
+                            valor={v.pagamentoConfirmado ? "Confirmado" : "Pendente"}
+                          />
                         </dl>
                         {v.observacao && (
                           <div>
