@@ -14,159 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      atendimentos: {
-        Row: {
-          agendamento_id: string
-          cadastrado: boolean
-          created_at: string
-          empresa_id: string
-          entrega_confirmada: boolean
-          entrega_confirmada_em: string | null
-          etapa: Database["public"]["Enums"]["etapa_atendimento"]
-          finalizado_em: string | null
-          foto_url: string | null
-          id: string
-          iniciado_em: string
-          nascimento: string | null
-          observacao: string | null
-          pagamento_confirmado: boolean
-          pagamento_confirmado_em: string | null
-          peso: number | null
-          pet_id: string | null
-          pet_nome: string
-          pet_tipo: Database["public"]["Enums"]["tipo_pet"] | null
-          sexo: Database["public"]["Enums"]["sexo_pet"] | null
-          temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
-        }
-        Insert: {
-          agendamento_id: string
-          cadastrado?: boolean
-          created_at?: string
-          empresa_id: string
-          entrega_confirmada?: boolean
-          entrega_confirmada_em?: string | null
-          etapa?: Database["public"]["Enums"]["etapa_atendimento"]
-          finalizado_em?: string | null
-          foto_url?: string | null
-          id?: string
-          iniciado_em?: string
-          nascimento?: string | null
-          observacao?: string | null
-          pagamento_confirmado?: boolean
-          pagamento_confirmado_em?: string | null
-          peso?: number | null
-          pet_nome?: string
-          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
-          pet_id?: string | null
-          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
-          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
-        }
-        Update: {
-          agendamento_id?: string
-          cadastrado?: boolean
-          created_at?: string
-          empresa_id?: string
-          entrega_confirmada?: boolean
-          entrega_confirmada_em?: string | null
-          etapa?: Database["public"]["Enums"]["etapa_atendimento"]
-          finalizado_em?: string | null
-          foto_url?: string | null
-          id?: string
-          iniciado_em?: string
-          nascimento?: string | null
-          observacao?: string | null
-          pagamento_confirmado?: boolean
-          pagamento_confirmado_em?: string | null
-          peso?: number | null
-          pet_nome?: string
-          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
-          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
-          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
-          pet_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atendimentos_agendamento_id_fkey"
-            columns: ["agendamento_id"]
-            isOneToOne: true
-            referencedRelation: "agendamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atendimentos_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pets: {
-        Row: {
-          cadastrado: boolean
-          cliente_id: string
-          created_at: string
-          empresa_id: string
-          foto_url: string | null
-          id: string
-          nascimento: string | null
-          nome: string
-          observacao: string | null
-          peso: number | null
-          sexo: Database["public"]["Enums"]["sexo_pet"] | null
-          temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
-          tipo: Database["public"]["Enums"]["tipo_pet"] | null
-          updated_at: string
-        }
-        Insert: {
-          cadastrado?: boolean
-          cliente_id: string
-          created_at?: string
-          empresa_id: string
-          foto_url?: string | null
-          id?: string
-          nascimento?: string | null
-          nome?: string
-          observacao?: string | null
-          peso?: number | null
-          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
-          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
-          tipo?: Database["public"]["Enums"]["tipo_pet"] | null
-          updated_at?: string
-        }
-        Update: {
-          cadastrado?: boolean
-          cliente_id?: string
-          created_at?: string
-          empresa_id?: string
-          foto_url?: string | null
-          id?: string
-          nascimento?: string | null
-          nome?: string
-          observacao?: string | null
-          peso?: number | null
-          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
-          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
-          tipo?: Database["public"]["Enums"]["tipo_pet"] | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pets_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pets_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       agendamentos: {
         Row: {
           cliente_id: string
@@ -227,6 +74,100 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimentos: {
+        Row: {
+          agendamento_id: string
+          cadastrado: boolean
+          created_at: string
+          empresa_id: string
+          entrega_confirmada: boolean
+          entrega_confirmada_em: string | null
+          etapa: Database["public"]["Enums"]["etapa_atendimento"]
+          finalizado_em: string | null
+          foto_url: string | null
+          id: string
+          iniciado_em: string
+          nascimento: string | null
+          observacao: string | null
+          pagamento_confirmado: boolean
+          pagamento_confirmado_em: string | null
+          peso: number | null
+          pet_id: string | null
+          pet_nome: string
+          pet_tipo: Database["public"]["Enums"]["tipo_pet"] | null
+          sexo: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
+        }
+        Insert: {
+          agendamento_id: string
+          cadastrado?: boolean
+          created_at?: string
+          empresa_id: string
+          entrega_confirmada?: boolean
+          entrega_confirmada_em?: string | null
+          etapa?: Database["public"]["Enums"]["etapa_atendimento"]
+          finalizado_em?: string | null
+          foto_url?: string | null
+          id?: string
+          iniciado_em?: string
+          nascimento?: string | null
+          observacao?: string | null
+          pagamento_confirmado?: boolean
+          pagamento_confirmado_em?: string | null
+          peso?: number | null
+          pet_id?: string | null
+          pet_nome?: string
+          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
+          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+        }
+        Update: {
+          agendamento_id?: string
+          cadastrado?: boolean
+          created_at?: string
+          empresa_id?: string
+          entrega_confirmada?: boolean
+          entrega_confirmada_em?: string | null
+          etapa?: Database["public"]["Enums"]["etapa_atendimento"]
+          finalizado_em?: string | null
+          foto_url?: string | null
+          id?: string
+          iniciado_em?: string
+          nascimento?: string | null
+          observacao?: string | null
+          pagamento_confirmado?: boolean
+          pagamento_confirmado_em?: string | null
+          peso?: number | null
+          pet_id?: string | null
+          pet_nome?: string
+          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
+          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: true
+            referencedRelation: "agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
             referencedColumns: ["id"]
           },
         ]
@@ -399,6 +340,72 @@ export type Database = {
         }
         Relationships: []
       }
+      pets: {
+        Row: {
+          cadastrado: boolean
+          cliente_id: string
+          created_at: string
+          empresa_id: string
+          foto_url: string | null
+          id: string
+          nascimento: string | null
+          nome: string
+          observacao: string | null
+          peso: number | null
+          sexo: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
+          tipo: Database["public"]["Enums"]["tipo_pet"] | null
+          updated_at: string
+        }
+        Insert: {
+          cadastrado?: boolean
+          cliente_id: string
+          created_at?: string
+          empresa_id: string
+          foto_url?: string | null
+          id?: string
+          nascimento?: string | null
+          nome?: string
+          observacao?: string | null
+          peso?: number | null
+          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+          tipo?: Database["public"]["Enums"]["tipo_pet"] | null
+          updated_at?: string
+        }
+        Update: {
+          cadastrado?: boolean
+          cliente_id?: string
+          created_at?: string
+          empresa_id?: string
+          foto_url?: string | null
+          id?: string
+          nascimento?: string | null
+          nome?: string
+          observacao?: string | null
+          peso?: number | null
+          sexo?: Database["public"]["Enums"]["sexo_pet"] | null
+          temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
+          tipo?: Database["public"]["Enums"]["tipo_pet"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pets_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pets_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servicos: {
         Row: {
           ativo: boolean
@@ -501,14 +508,13 @@ export type Database = {
       app_role: "admin" | "master"
       etapa_atendimento: "em_atendimento" | "finalizado"
       sexo_pet: "macho" | "femea"
-      temperamento_pet: "manso" | "bravo"
-      tipo_pet: "cachorro" | "gato" | "ave" | "roedor" | "reptil" | "outro"
       status_agendamento:
         | "pendente"
         | "confirmado"
         | "cancelado"
         | "concluido"
         | "aguardando_confirmacao"
+      temperamento_pet: "manso" | "bravo"
       tipo_agenda:
         | "saude_bem_estar"
         | "beleza_estetica"
@@ -520,6 +526,7 @@ export type Database = {
         | "servicos_publicos_governamentais"
         | "corporativo_rh"
         | "pet_shop_veterinaria"
+      tipo_pet: "cachorro" | "gato" | "ave" | "roedor" | "reptil" | "outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -650,8 +657,6 @@ export const Constants = {
       app_role: ["admin", "master"],
       etapa_atendimento: ["em_atendimento", "finalizado"],
       sexo_pet: ["macho", "femea"],
-      temperamento_pet: ["manso", "bravo"],
-      tipo_pet: ["cachorro", "gato", "ave", "roedor", "reptil", "outro"],
       status_agendamento: [
         "pendente",
         "confirmado",
@@ -659,6 +664,7 @@ export const Constants = {
         "concluido",
         "aguardando_confirmacao",
       ],
+      temperamento_pet: ["manso", "bravo"],
       tipo_agenda: [
         "saude_bem_estar",
         "beleza_estetica",
@@ -671,6 +677,7 @@ export const Constants = {
         "corporativo_rh",
         "pet_shop_veterinaria",
       ],
+      tipo_pet: ["cachorro", "gato", "ave", "roedor", "reptil", "outro"],
     },
   },
 } as const
