@@ -327,6 +327,7 @@ function FichaDialog({
   const [sexo, setSexo] = useState<string | null>(null);
   const [nascimento, setNascimento] = useState("");
   const [peso, setPeso] = useState("");
+  const [valorReal, setValorReal] = useState("");
   const [cadastrado, setCadastrado] = useState(false);
   const [temperamento, setTemperamento] = useState<string | null>(null);
   const [observacao, setObservacao] = useState("");
@@ -439,6 +440,7 @@ function FichaDialog({
     setSexo(ficha.sexo);
     setNascimento(ficha.nascimento ?? "");
     setPeso(ficha.peso === null ? "" : String(ficha.peso));
+    setValorReal(ficha.valorReal === null ? String(ficha.precoPrevisto) : String(ficha.valorReal));
     setCadastrado(ficha.cadastrado);
     setTemperamento(ficha.temperamento);
     setObservacao(ficha.observacao ?? "");
@@ -464,6 +466,10 @@ function FichaDialog({
       toast.error("Informe o nome do pet");
       return;
     }
+    if (valorReal.trim() === "" || !Number.isFinite(Number(valorReal)) || Number(valorReal) < 0 || Number(valorReal) > 100000 || Math.abs(Math.round(Number(valorReal) * 100) - Number(valorReal) * 100) > 0.000001) {
+      toast.error("Informe um valor real válido, com até duas casas decimais");
+      return;
+    }
     if (fotoFile && fotoFile.size > 4_000_000) {
       toast.error("A foto deve ter no máximo 4 MB");
       return;
@@ -480,6 +486,7 @@ function FichaDialog({
           sexo: sexo as "macho" | "femea" | null,
           nascimento: nascimento || null,
           peso: peso ? Number(peso) : null,
+          valorReal: Number(valorReal),
           cadastrado,
           temperamento: temperamento as "manso" | "bravo" | null,
           observacao,
@@ -838,6 +845,23 @@ function FichaDialog({
             </div>
 
             <div className="flex flex-col gap-2">
+              <Label htmlFor="ficha-valor-real">Valor real do atendimento (R$)</Label>
+              <Input
+                id="ficha-valor-real"
+                type="number"
+                min={0}
+                max={100000}
+                step="0.01"
+                inputMode="decimal"
+                className="h-12"
+                value={valorReal}
+                onChange={(event) => setValorReal(event.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">Valor previsto: {moeda(ficha?.precoPrevisto ?? 0)}</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
               <Label htmlFor="ficha-obs">Observação</Label>
               <Textarea
                 id="ficha-obs"
@@ -910,7 +934,7 @@ function SalaTab() {
                   <p className="text-sm font-bold">{i.petNome}</p>
                 )}
                 <p className="truncate text-xs text-muted-foreground">
-                  {i.clienteNome} · {i.servicoNome} · {moeda(i.servicoPreco)}
+                  {i.clienteNome} · {i.servicoNome} · {i.valorReal === null ? "Valor a definir" : moeda(i.valorReal)}
                 </p>
                 <p className="mt-1 flex flex-wrap gap-1.5 text-xs">
                   <span
@@ -948,7 +972,8 @@ function SalaTab() {
             <div className="flex flex-col gap-4">
               <div className="rounded-xl border border-border p-3 text-sm">
                 <p className="font-medium">{item.servicoNome}</p>
-                <p className="text-muted-foreground">{moeda(item.servicoPreco)}</p>
+                <p className="text-muted-foreground">Previsto: {moeda(item.servicoPreco)}</p>
+                <p className="font-semibold">Valor real: {item.valorReal === null ? "Não informado" : moeda(item.valorReal)}</p>
               </div>
 
               <CheckoutAcoes
@@ -973,7 +998,7 @@ function CheckoutAcoes({
   item,
   onAtualizar,
 }: {
-  item: { id: string; pagamentoConfirmado: boolean; entregaConfirmada: boolean };
+  item: { id: string; valorReal: number | null; pagamentoConfirmado: boolean; entregaConfirmada: boolean };
   onAtualizar: () => void;
 }) {
   const pagar = useServerFn(confirmarPagamento);
@@ -1002,12 +1027,15 @@ function CheckoutAcoes({
       <Button
         className="h-12 rounded-full"
         variant={item.pagamentoConfirmado ? "outline" : "default"}
-        disabled={item.pagamentoConfirmado || mPagar.isPending}
+        disabled={item.valorReal === null || item.pagamentoConfirmado || mPagar.isPending}
         onClick={() => mPagar.mutate()}
       >
         <CheckCircle2 className="mr-1 h-4 w-4" aria-hidden />
         {item.pagamentoConfirmado ? "Pagamento confirmado" : "Confirmar pagamento"}
       </Button>
+      {item.valorReal === null && (
+        <p className="text-center text-xs text-muted-foreground">Informe o valor real na ficha antes de confirmar o pagamento.</p>
+      )}
       <Button
         className="h-12 rounded-full"
         disabled={!item.pagamentoConfirmado || mEntregar.isPending}

@@ -256,7 +256,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
         sexo: z.enum(["macho", "femea"]).nullable(),
         nascimento: z.string().nullable(),
         peso: z.number().positive().max(999).nullable(),
-        valorReal: z.number().finite().min(0).max(100000).refine((v) => Math.round(v * 100) === v * 100, "Informe no máximo duas casas decimais"),
+        valorReal: z.number().finite().min(0).max(100000).refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 0.000001, "Informe no máximo duas casas decimais"),
         cadastrado: z.boolean(),
         temperamento: z.enum(["manso", "bravo"]).nullable(),
         observacao: z.string().trim().max(2000).optional().default(""),
