@@ -670,6 +670,8 @@ function FichaDialog({
                             }
                           />
                           <Campo label="Cliente" valor={v.clienteNome} />
+                          <Campo label="Valor real" valor={v.valorReal === null ? "—" : moeda(v.valorReal)} />
+                          <Campo label="Pagamento" valor={v.pagamentoConfirmado ? "Confirmado" : "Pendente"} />
                         </dl>
                         {v.observacao && (
                           <div>
@@ -1296,6 +1298,8 @@ function PetHistoricoDialog({
                             }
                           />
                           <Campo label="Cliente" valor={v.clienteNome} />
+                          <Campo label="Valor real" valor={v.valorReal === null ? "—" : moeda(v.valorReal)} />
+                          <Campo label="Pagamento" valor={v.pagamentoConfirmado ? "Confirmado" : "Pendente"} />
                         </dl>
                         {v.observacao && (
                           <div>

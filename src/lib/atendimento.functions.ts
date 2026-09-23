@@ -277,11 +277,12 @@ export const salvarFicha = createServerFn({ method: "POST" })
 
     const { data: atendimentoAtual, error: erroAtual } = await ctx.supabase
       .from("atendimentos")
-      .select("agendamentos(cliente_id)")
+      .select("pagamento_confirmado, agendamentos(cliente_id)")
       .eq("id", data.id)
       .eq("empresa_id", empresaId)
       .single();
     if (erroAtual || !atendimentoAtual) throw new Error("Atendimento não encontrado.");
+    if (atendimentoAtual.pagamento_confirmado) throw new Error("Não é possível alterar uma ficha com pagamento confirmado.");
     const clienteId = (atendimentoAtual as any).agendamentos?.cliente_id as string;
 
     let fotoUrl: string | null = null;
@@ -396,6 +397,8 @@ export type VisitaPet = {
   atendimentoId: string;
   inicio: string;
   finalizadoEm: string | null;
+  valorReal: number | null;
+  pagamentoConfirmado: boolean;
   servicoNome: string;
   clienteNome: string;
   fotoUrl: string | null;
@@ -492,7 +495,7 @@ export const listHistoricoPet = createServerFn({ method: "GET" })
     const { data: visitas, error: erroVisitas } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, foto_url, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, finalizado_em, agendamentos(inicio, clientes(nome), servicos(nome))",
+        "id, foto_url, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, valor_real, pagamento_confirmado, finalizado_em, agendamentos(inicio, clientes(nome), servicos(nome))",
       )
       .eq("pet_id", data.petId)
       .eq("empresa_id", empresaId)
@@ -516,6 +519,8 @@ export const listHistoricoPet = createServerFn({ method: "GET" })
         atendimentoId: v.id,
         inicio: v.agendamentos?.inicio ?? "",
         finalizadoEm: v.finalizado_em,
+        valorReal: v.valor_real === null ? null : Number(v.valor_real),
+        pagamentoConfirmado: v.pagamento_confirmado,
         servicoNome: v.agendamentos?.servicos?.nome ?? "—",
         clienteNome: v.agendamentos?.clientes?.nome ?? "—",
         fotoUrl: v.foto_url,
