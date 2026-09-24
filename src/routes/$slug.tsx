@@ -207,17 +207,11 @@ function AgendarPage() {
                       setHora(null);
                       setEtapa(2);
                     }}
-                    className="flex items-center justify-between rounded-lg bg-cream/60 p-3 text-left ring-1 ring-border hover:ring-secondary"
+                    className="rounded-lg bg-cream/60 p-3 text-left ring-1 ring-border hover:ring-secondary"
                   >
                     <span>
                       <span className="block text-sm font-medium">{s.nome}</span>
                       <span className="block text-xs text-inksoft">{s.duracao_min} min</span>
-                    </span>
-                    <span className="text-right">
-                      <span className="block text-[0.65rem] text-inksoft">a partir de</span>
-                      <span className="block text-sm font-semibold font-display">
-                        {moeda(s.preco)}
-                      </span>
                     </span>
                   </button>
                 ))}
@@ -229,7 +223,7 @@ function AgendarPage() {
             <section>
               <h2 className="text-lg font-display">Data e horário</h2>
               <p className="text-xs text-inksoft">
-                {servico.nome} · {servico.duracao_min} min · {moeda(servico.preco)}
+                {servico.nome} · {servico.duracao_min} min
               </p>
 
               <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-5 lg:grid-cols-7">
