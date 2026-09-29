@@ -101,6 +101,7 @@ export type Database = {
           peso: number | null
           pet_id: string | null
           pet_nome: string
+          pet_raca: string | null
           pet_tipo: Database["public"]["Enums"]["tipo_pet"] | null
           sexo: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
@@ -125,6 +126,7 @@ export type Database = {
           peso?: number | null
           pet_id?: string | null
           pet_nome?: string
+          pet_raca?: string | null
           pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
           sexo?: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
@@ -149,6 +151,7 @@ export type Database = {
           peso?: number | null
           pet_id?: string | null
           pet_nome?: string
+          pet_raca?: string | null
           pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
           sexo?: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
@@ -221,6 +224,8 @@ export type Database = {
           filiacao: string | null
           id: string
           nome: string
+          pet_raca: string | null
+          pet_tipo: Database["public"]["Enums"]["tipo_pet"] | null
           telefone: string
         }
         Insert: {
@@ -230,6 +235,8 @@ export type Database = {
           filiacao?: string | null
           id?: string
           nome: string
+          pet_raca?: string | null
+          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
           telefone: string
         }
         Update: {
@@ -239,6 +246,8 @@ export type Database = {
           filiacao?: string | null
           id?: string
           nome?: string
+          pet_raca?: string | null
+          pet_tipo?: Database["public"]["Enums"]["tipo_pet"] | null
           telefone?: string
         }
         Relationships: [
@@ -358,6 +367,7 @@ export type Database = {
           nome: string
           observacao: string | null
           peso: number | null
+          raca: string | null
           sexo: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento: Database["public"]["Enums"]["temperamento_pet"] | null
           tipo: Database["public"]["Enums"]["tipo_pet"] | null
@@ -374,6 +384,7 @@ export type Database = {
           nome?: string
           observacao?: string | null
           peso?: number | null
+          raca?: string | null
           sexo?: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
           tipo?: Database["public"]["Enums"]["tipo_pet"] | null
@@ -390,6 +401,7 @@ export type Database = {
           nome?: string
           observacao?: string | null
           peso?: number | null
+          raca?: string | null
           sexo?: Database["public"]["Enums"]["sexo_pet"] | null
           temperamento?: Database["public"]["Enums"]["temperamento_pet"] | null
           tipo?: Database["public"]["Enums"]["tipo_pet"] | null
@@ -485,6 +497,8 @@ export type Database = {
           p_filiacao?: string
           p_inicio: string
           p_nome: string
+          p_pet_raca?: string
+          p_pet_tipo?: Database["public"]["Enums"]["tipo_pet"]
           p_servico: string
           p_slug: string
           p_telefone: string
