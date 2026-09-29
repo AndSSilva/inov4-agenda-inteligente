@@ -166,6 +166,8 @@ export const criarReservaPublica = createServerFn({ method: "POST" })
           }, "Telefone inválido — informe DDD + número"),
         email: z.string().trim().email().max(255).optional().or(z.literal("")),
         filiacao: z.string().trim().min(1, "Informe o nome do pet").max(120),
+        petTipo: z.enum(["cachorro", "gato", "outro"]),
+        petRaca: z.string().trim().max(80).optional().default(""),
       })
       .parse(input),
   )
@@ -179,6 +181,8 @@ export const criarReservaPublica = createServerFn({ method: "POST" })
       p_telefone: data.telefone,
       ...(data.email ? { p_email: data.email } : {}),
       ...(data.filiacao ? { p_filiacao: data.filiacao } : {}),
+      p_pet_tipo: data.petTipo,
+      ...(data.petRaca ? { p_pet_raca: data.petRaca } : {}),
     });
     if (error) return { ok: false, erro: error.message };
     return { ok: true, id: id as string };

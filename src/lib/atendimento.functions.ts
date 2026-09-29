@@ -87,7 +87,7 @@ export const iniciarAtendimento = createServerFn({ method: "POST" })
 
     const { data: agendamento, error: erroAgendamento } = await ctx.supabase
       .from("agendamentos")
-      .select("id, clientes(filiacao)")
+      .select("id, clientes(filiacao, pet_tipo, pet_raca)")
       .eq("id", data.agendamentoId)
       .eq("empresa_id", empresaId)
       .single();
@@ -99,6 +99,8 @@ export const iniciarAtendimento = createServerFn({ method: "POST" })
         agendamento_id: data.agendamentoId,
         empresa_id: empresaId,
         pet_nome: (agendamento as any).clientes?.filiacao ?? "",
+        pet_tipo: (agendamento as any).clientes?.pet_tipo ?? null,
+        pet_raca: (agendamento as any).clientes?.pet_raca ?? null,
       })
       .select("id")
       .single();
@@ -150,6 +152,7 @@ export type Ficha = {
   fotoUrl: string | null;
   petNome: string;
   petTipo: string | null;
+  petRaca: string | null;
   sexo: string | null;
   nascimento: string | null;
   peso: number | null;
@@ -170,7 +173,7 @@ export const getFicha = createServerFn({ method: "GET" })
     const { data: row, error } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, pet_id, foto_url, pet_nome, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, valor_real, agendamentos(inicio, cliente_id, preco_previsto, clientes(nome), servicos(nome))",
+        "id, pet_id, foto_url, pet_nome, pet_tipo, pet_raca, sexo, nascimento, peso, cadastrado, temperamento, observacao, valor_real, agendamentos(inicio, cliente_id, preco_previsto, clientes(nome), servicos(nome))",
       )
       .eq("id", data.id)
       .eq("empresa_id", empresaId)
@@ -186,6 +189,7 @@ export const getFicha = createServerFn({ method: "GET" })
       fotoUrl: row.foto_url,
       petNome: row.pet_nome ?? "",
       petTipo: row.pet_tipo,
+      petRaca: row.pet_raca,
       sexo: row.sexo,
       nascimento: row.nascimento,
       peso: row.peso === null ? null : Number(row.peso),
@@ -202,6 +206,7 @@ export type PetResumo = {
   id: string;
   nome: string;
   tipo: string | null;
+  raca: string | null;
   sexo: string | null;
   nascimento: string | null;
   peso: number | null;
@@ -221,7 +226,7 @@ export const listPetsDoCliente = createServerFn({ method: "GET" })
     const { data: rows, error } = await ctx.supabase
       .from("pets")
       .select(
-        "id, nome, tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, foto_url",
+        "id, nome, tipo, raca, sexo, nascimento, peso, cadastrado, temperamento, observacao, foto_url",
       )
       .eq("cliente_id", data.clienteId)
       .eq("empresa_id", empresaId)
@@ -232,6 +237,7 @@ export const listPetsDoCliente = createServerFn({ method: "GET" })
       id: p.id,
       nome: p.nome,
       tipo: p.tipo,
+      raca: p.raca,
       sexo: p.sexo,
       nascimento: p.nascimento,
       peso: p.peso === null ? null : Number(p.peso),
@@ -253,6 +259,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
         petId: z.string().uuid().nullable(),
         petNome: z.string().trim().min(1).max(80),
         petTipo: z.enum(TIPOS_PET).nullable(),
+        petRaca: z.string().trim().max(80).optional().default(""),
         sexo: z.enum(["macho", "femea"]).nullable(),
         nascimento: z.string().nullable(),
         peso: z.number().positive().max(999).nullable(),
@@ -314,6 +321,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
       cliente_id: clienteId,
       nome: data.petNome,
       tipo: data.petTipo,
+      raca: data.petRaca || null,
       sexo: data.sexo,
       nascimento: data.nascimento || null,
       peso: data.peso,
@@ -347,6 +355,7 @@ export const salvarFicha = createServerFn({ method: "POST" })
         pet_id: petId,
         pet_nome: data.petNome,
         pet_tipo: data.petTipo,
+        pet_raca: data.petRaca || null,
         sexo: data.sexo,
         nascimento: data.nascimento || null,
         peso: data.peso,
@@ -412,6 +421,7 @@ export type VisitaPet = {
   clienteNome: string;
   fotoUrl: string | null;
   petTipo: string | null;
+  petRaca: string | null;
   sexo: string | null;
   nascimento: string | null;
   peso: number | null;
@@ -494,7 +504,7 @@ export const listHistoricoPet = createServerFn({ method: "GET" })
     const { data: pet, error: erroPet } = await ctx.supabase
       .from("pets")
       .select(
-        "id, nome, tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, foto_url",
+        "id, nome, tipo, raca, sexo, nascimento, peso, cadastrado, temperamento, observacao, foto_url",
       )
       .eq("id", data.petId)
       .eq("empresa_id", empresaId)
@@ -504,7 +514,7 @@ export const listHistoricoPet = createServerFn({ method: "GET" })
     const { data: visitas, error: erroVisitas } = await ctx.supabase
       .from("atendimentos")
       .select(
-        "id, foto_url, pet_tipo, sexo, nascimento, peso, cadastrado, temperamento, observacao, valor_real, pagamento_confirmado, finalizado_em, agendamentos(inicio, clientes(nome), servicos(nome))",
+        "id, foto_url, pet_tipo, pet_raca, sexo, nascimento, peso, cadastrado, temperamento, observacao, valor_real, pagamento_confirmado, finalizado_em, agendamentos(inicio, clientes(nome), servicos(nome))",
       )
       .eq("pet_id", data.petId)
       .eq("empresa_id", empresaId)
@@ -516,6 +526,7 @@ export const listHistoricoPet = createServerFn({ method: "GET" })
         id: pet.id,
         nome: pet.nome,
         tipo: pet.tipo,
+        raca: pet.raca,
         sexo: pet.sexo,
         nascimento: pet.nascimento,
         peso: pet.peso === null ? null : Number(pet.peso),
@@ -534,6 +545,7 @@ export const listHistoricoPet = createServerFn({ method: "GET" })
         clienteNome: v.agendamentos?.clientes?.nome ?? "—",
         fotoUrl: v.foto_url,
         petTipo: v.pet_tipo,
+        petRaca: v.pet_raca,
         sexo: v.sexo,
         nascimento: v.nascimento,
         peso: v.peso === null ? null : Number(v.peso),
