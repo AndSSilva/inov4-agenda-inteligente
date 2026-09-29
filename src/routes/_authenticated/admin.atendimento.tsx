@@ -800,28 +800,26 @@ function FichaDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label>Sexo</Label>
-                <div className="flex gap-2">
-                  {[
-                    { valor: "macho", label: "Macho" },
-                    { valor: "femea", label: "Fêmea" },
-                  ].map((opcao) => (
-                    <button
-                      key={opcao.valor}
-                      type="button"
-                      onClick={() => setSexo(opcao.valor)}
-                      className={`h-12 flex-1 rounded-lg text-sm font-medium ring-1 ring-border ${
-                        sexo === opcao.valor
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-background hover:bg-accent"
-                      }`}
-                    >
-                      {opcao.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex flex-col gap-2">
+              <Label>Sexo</Label>
+              <div className="flex gap-2">
+                {[
+                  { valor: "macho", label: "Macho" },
+                  { valor: "femea", label: "Fêmea" },
+                ].map((opcao) => (
+                  <button
+                    key={opcao.valor}
+                    type="button"
+                    onClick={() => setSexo(opcao.valor)}
+                    className={`h-12 flex-1 rounded-lg text-sm font-medium ring-1 ring-border ${
+                      sexo === opcao.valor
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background hover:bg-accent"
+                    }`}
+                  >
+                    {opcao.label}
+                  </button>
+                ))}
               </div>
             </div>
 
