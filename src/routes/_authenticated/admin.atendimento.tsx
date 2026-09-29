@@ -324,6 +324,7 @@ function FichaDialog({
 
   const [petNome, setPetNome] = useState("");
   const [petTipo, setPetTipo] = useState<string | null>(null);
+  const [petRaca, setPetRaca] = useState("");
   const [sexo, setSexo] = useState<string | null>(null);
   const [nascimento, setNascimento] = useState("");
   const [peso, setPeso] = useState("");
@@ -382,6 +383,7 @@ function FichaDialog({
     dados: {
       nome: string;
       tipo: string | null;
+      raca: string | null;
       sexo: string | null;
       nascimento: string | null;
       peso: number | null;
@@ -394,6 +396,7 @@ function FichaDialog({
   ) {
     setPetNome(dados.nome);
     setPetTipo(dados.tipo);
+    setPetRaca(dados.raca ?? "");
     setSexo(dados.sexo);
     setNascimento(dados.nascimento ?? "");
     setPeso(dados.peso === null ? "" : String(dados.peso));
@@ -413,6 +416,7 @@ function FichaDialog({
         {
           nome: petAtual.nome,
           tipo: ultima.petTipo,
+          raca: ultima.petRaca,
           sexo: ultima.sexo,
           nascimento: ultima.nascimento,
           peso: ultima.peso,
@@ -437,6 +441,7 @@ function FichaDialog({
     if (!ficha) return;
     setPetNome(ficha.petNome);
     setPetTipo(ficha.petTipo);
+    setPetRaca(ficha.petRaca ?? "");
     setSexo(ficha.sexo);
     setNascimento(ficha.nascimento ?? "");
     setPeso(ficha.peso === null ? "" : String(ficha.peso));
@@ -489,6 +494,7 @@ function FichaDialog({
           petId: petIdEscolhido,
           petNome: petNome.trim(),
           petTipo: petTipo as "cachorro" | "gato" | "ave" | "roedor" | "reptil" | "outro" | null,
+          petRaca: petRaca.trim(),
           sexo: sexo as "macho" | "femea" | null,
           nascimento: nascimento || null,
           peso: peso ? Number(peso) : null,
@@ -699,6 +705,7 @@ function FichaDialog({
                               {
                                 nome: petAtual.nome,
                                 tipo: v.petTipo,
+                                 raca: v.petRaca,
                                 sexo: v.sexo,
                                 nascimento: v.nascimento,
                                 peso: v.peso,
@@ -764,7 +771,7 @@ function FichaDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="ficha-tipo">Tipo</Label>
                 <Select value={petTipo ?? ""} onValueChange={setPetTipo}>
@@ -780,6 +787,20 @@ function FichaDialog({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ficha-raca">Raça</Label>
+                <Input
+                  id="ficha-raca"
+                  className="h-12"
+                  maxLength={80}
+                  value={petRaca}
+                  onChange={(event) => setPetRaca(event.target.value)}
+                  placeholder="Ex.: Shih-tzu ou sem raça definida"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label>Sexo</Label>
                 <div className="flex gap-2">

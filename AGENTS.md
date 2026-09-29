@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Preserve os dados prévios do pet em `clientes` e copie-os para `atendimentos` ao iniciar a ficha, pois a reserva pública acontece antes da criação do perfil canônico em `pets`.

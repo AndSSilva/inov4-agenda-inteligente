@@ -91,6 +91,8 @@ function AgendarPage() {
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [filiacao, setFiliacao] = useState("");
+  const [petTipo, setPetTipo] = useState<"cachorro" | "gato" | "outro" | null>(null);
+  const [petRaca, setPetRaca] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   const hoje = dataLocal(new Date());
@@ -104,6 +106,10 @@ function AgendarPage() {
 
   async function confirmar() {
     if (!servico || !hora) return;
+    if (!petTipo) {
+      toast.error("Informe o tipo do pet.");
+      return;
+    }
     if (!telefoneValido(telefone)) {
       toast.error("Telefone inválido. Informe o DDD + número.");
       return;
@@ -142,7 +148,18 @@ function AgendarPage() {
 
     try {
       const res = await reservar({
-        data: { slug, servicoId: servico.id, data, hora, nome, telefone, email, filiacao },
+        data: {
+          slug,
+          servicoId: servico.id,
+          data,
+          hora,
+          nome,
+          telefone,
+          email,
+          filiacao,
+          petTipo,
+          petRaca,
+        },
       });
       if (res.ok) setEtapa(4);
       else toast.error(res.erro);
@@ -314,6 +331,36 @@ function AgendarPage() {
                 }}
               >
                 <Campo label="Nome do pet" value={filiacao} onChange={setFiliacao} required />
+                <fieldset className="grid gap-1">
+                  <legend className="text-xs text-inksoft">Tipo do pet</legend>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { valor: "cachorro", label: "Cachorro" },
+                      { valor: "gato", label: "Gato" },
+                      { valor: "outro", label: "Outro" },
+                    ].map((opcao) => (
+                      <button
+                        key={opcao.valor}
+                        type="button"
+                        aria-pressed={petTipo === opcao.valor}
+                        onClick={() =>
+                          setPetTipo(opcao.valor as "cachorro" | "gato" | "outro")
+                        }
+                        className={`rounded-lg px-2 py-2 text-sm ring-1 ring-border ${
+                          petTipo === opcao.valor ? "bg-brand text-cream" : "bg-cream/60"
+                        }`}
+                      >
+                        {opcao.label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <Campo
+                  label="Raça (opcional)"
+                  value={petRaca}
+                  onChange={setPetRaca}
+                  maxLength={80}
+                />
                 <Campo label="Nome do responsável" value={nome} onChange={setNome} required />
                 <label className="grid gap-1">
                   <span className="text-xs text-inksoft">Telefone (WhatsApp)</span>
@@ -343,7 +390,7 @@ function AgendarPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={enviando || !telefoneValido(telefone)}
+                    disabled={enviando || !telefoneValido(telefone) || !petTipo}
                     className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-cream ring-1 ring-brand disabled:opacity-60"
                   >
                     {enviando ? "Reservando…" : "Confirmar reserva"}
@@ -397,6 +444,8 @@ function AgendarPage() {
                   setTelefone("");
                   setEmail("");
                   setFiliacao("");
+                  setPetTipo(null);
+                  setPetRaca("");
                 }}
                 className="mt-2 rounded-lg px-4 py-2 text-sm text-inksoft ring-1 ring-border"
               >
@@ -416,12 +465,14 @@ function Campo({
   onChange,
   type = "text",
   required = false,
+  maxLength = 120,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   required?: boolean;
+  maxLength?: number;
 }) {
   return (
     <label className="grid gap-1">
@@ -430,7 +481,7 @@ function Campo({
         type={type}
         value={value}
         required={required}
-        maxLength={120}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         className="rounded-lg bg-cream/60 px-3 py-2 text-sm ring-1 ring-border outline-none focus:ring-brand"
       />

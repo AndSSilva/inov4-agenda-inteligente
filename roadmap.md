@@ -7,3 +7,4 @@
 - [x] Registrar preço previsto da reserva e valor real do atendimento
 - [x] Contabilizar receita real apenas após confirmação do pagamento
 - [ ] Validar a ficha, o checkout e os dois indicadores do dashboard com uma conta administradora vinculada
+- [x] Coletar tipo e raça do pet na reserva pública e preencher a ficha de atendimento
